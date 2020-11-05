@@ -42,6 +42,11 @@
 `define ARITH_OR 3'b110
 `define ARITH_AND 3'b111
 
+// funct7 of arith instructions
+`define ARITH_ADD_FUNCT7 7'b0
+`define ARITH_SUB_FUNCT7 7'b0100000
+`define ARITH_MIN_FUNCT7 7'b0000101
+
 // funct3 of branch instructions
 `define BRANCH_BEQ 3'b000
 `define BRANCH_BNE 3'b001 
@@ -61,7 +66,14 @@
 `define StateBus 3:0
 `define STATE_BOOT 4'b0000
 `define STATE_IF 4'b0001 
-`define STATE_EXE 4'b0010 
-`define STATE_MEM 4'b0011 
-`define STATE_WB 4'b0100
-`define STATE_UART 4'b0101
+`define STATE_EXE1 4'b0010 
+`define STATE_EXE2 4'b0011
+`define STATE_MEM 4'b00100 
+`define STATE_WB 4'b0101
+
+`define USE_NOTHING 2'b00
+`define USE_BASE 2'b01 
+`define USE_EXT 2'b10 
+`define USE_UART 2'b11 
+
+`define START_ADDR 32'h0

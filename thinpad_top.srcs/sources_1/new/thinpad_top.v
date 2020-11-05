@@ -118,11 +118,6 @@ end
 assign base_ram_be_n = 4'b0000;
 assign ext_ram_be_n = 4'b0000;
 
-//disable ext ram
-assign ext_ram_ce_n = 1'b1;
-assign ext_ram_oe_n = 1'b1;
-assign ext_ram_we_n = 1'b1;
-
 // disable uart
 assign uart_rdn = 1'b1;
 assign uart_wrn = 1'b1;
@@ -130,25 +125,44 @@ assign uart_wrn = 1'b1;
 wire clk = clk_11M0592;
 wire rst = reset_btn; 
 
-wire[31:0] data_sram_out;
-wire sram_done;
-reg oe_sram_n, we_sram_n;
-reg[19:0] address; // 喂给sram的地址
-assign base_ram_addr = address;
-reg[31:0] data_sram_in;
-
-sram_io _sram_io(
+wire[31:0] data_base_out;
+wire base_done;
+reg oe_base_n, we_base_n;
+reg[19:0] base_address; // 喂给base_ram的地址
+assign base_ram_addr = base_address;
+reg[31:0] data_base_in;
+sram_io base_ram_io(
     .clk(clk),
     .rst(rst),
-    .oen(oe_sram_n),
-    .wen(we_sram_n),
-    .data_in(data_sram_in),
-    .data_out(data_sram_out),
-    .done(sram_done),
-    .base_ram_data_wire(base_ram_data),
-    .base_ram_ce_n(base_ram_ce_n),
-    .base_ram_oe_n(base_ram_oe_n),
-    .base_ram_we_n(base_ram_we_n)
+    .oen(oe_base_n),
+    .wen(we_base_n),
+    .data_in(data_base_in),
+    .data_out(data_base_out),
+    .done(base_done),
+    .ram_data_wire(base_ram_data),
+    .ram_ce_n(base_ram_ce_n),
+    .ram_oe_n(base_ram_oe_n),
+    .ram_we_n(base_ram_we_n)
+);
+
+wire[31:0] data_ext_out;
+wire ext_done;
+reg oe_ext_n, we_ext_n;
+reg[19:0] ext_address; // 喂给ext_ram的地址
+assign ext_ram_addr = ext_address;
+reg[31:0] data_ext_in;
+sram_io ext_ram_io(
+    .clk(clk),
+    .rst(rst),
+    .oen(oe_ext_n),
+    .wen(we_ext_n),
+    .data_in(data_ext_in),
+    .data_out(data_ext_out),
+    .done(ext_done),
+    .ram_data_wire(ext_ram_data),
+    .ram_ce_n(ext_ram_ce_n),
+    .ram_oe_n(ext_ram_oe_n),
+    .ram_we_n(ext_ram_we_n)
 );
 
 reg reg_we;
@@ -169,13 +183,22 @@ regfile _regfile(
     .rdata2(reg2_data)
 );
 
+
+wire [1:0] mem_use;
+wire [19:0] ram_addr;
+addr_decode _addr_decode(
+    .mem_addr(mem_addr),
+    .mem_use(mem_use),
+    .ram_addr(ram_addr)
+);
+
 wire instValid, branch, mem_rd, mem_wr, wb;
 wire[`InstAddrBus] branch_addr;
-wire[2:0] load_type;
 wire[`DataBus] mem_wr_data;
 wire[`DataAddrBus] mem_addr;
 wire[`RegAddrBus] wb_reg_addr;
 wire[`DataBus] wb_data;
+wire[3:0] ram_be_n;
 exe _exe(
     .pc(pc),
     .inst(inst),
@@ -187,84 +210,140 @@ exe _exe(
     .branch(branch),
     .branch_addr(branch_addr),
     .mem_rd(mem_rd),
-    .load_type(load_type),
     .mem_wr(mem_wr),
     .mem_wr_data(mem_wr_data),
     .mem_addr(mem_addr),
     .wb(wb),
     .wb_reg_addr(wb_reg_addr),
-    .wb_data(wb_data)
+    .wb_data(wb_data),
+    .ram_be_n(ram_be_n)
 );
 // program counter
 reg [`InstAddrBus] pc;
+wire [`InstAddrBus] new_pc = branch? branch_addr: pc + 4;
 // instruction
 reg [`InstBus] inst;
 reg [`StateBus] state;
-  
+
 always@(posedge clk or posedge rst) begin
     if(rst)begin
-        pc <= 32'b0;
-        {oe_sram_n, we_sram_n} <= 2'b11;
+        pc <= `START_ADDR;
+        {oe_base_n, we_base_n} <= 2'b11;
+        {oe_ext_n, we_ext_n} <= 2'b11;
         state <= `STATE_BOOT;
         inst <= 32'b0;
-        address <= 20'b0;
-        data_sram_in <= 32'b0;
+        base_address <= 20'b0;
+        ext_address <= 20'b0;
+        data_base_in <= 32'b0;
         reg_we <= 1'b0;
     end
     else begin
         case (state) 
             `STATE_BOOT: begin
-                address <= pc[21:2];
-                oe_sram_n <= 1'b0;
-                state <= `STATE_IF;
+                reg_we <= 1'b0;
+                base_address <= `START_ADDR;
+                oe_base_n <= 1'b0; 
+                state <= `STATE_EXE1;        
             end
             `STATE_IF: begin
-                if(sram_done) begin
-                    oe_sram_n <= 1'b1;
-                    inst <= data_sram_out;
-                    state <= `STATE_EXE;
-                end
+                reg_we <= 1'b0; // 新周期开始前可以写reg
+                pc <= new_pc;
+                base_address <= new_pc[21:2];
+                oe_base_n <= 1'b0; 
+                state <= `STATE_EXE1;
             end
-            `STATE_EXE: begin
-                pc <= branch ? branch_addr: pc + 4;
-                if (mem_rd | mem_wr) begin
-                    address <= mem_addr[21:2];
-                    if (mem_rd) begin
-                        oe_sram_n <= 1'b0;
-                    end
-                    else begin
-                        we_sram_n <= 1'b0;
-                        data_sram_in <= mem_wr_data;
-                    end
+            `STATE_EXE1: begin
+                // EXE阶段及以后不允许修改pc和inst的值
+                // 保证控制信号稳定
+                if(base_done) begin
+                    oe_base_n <= 1'b1;
+                    inst <= data_base_out;
                     state <= `STATE_MEM;
                 end
+            end
+            `STATE_MEM: begin
+                if (mem_rd) begin
+                    case (mem_use)
+                        `USE_BASE: begin
+                            base_address <= ram_addr;
+                            oe_base_n <= 1'b0;
+                            state <= `STATE_WB;
+                        end
+                        `USE_EXT: begin
+                            ext_address <= ram_addr;
+                            oe_ext_n <= 1'b0;
+                            state <= `STATE_WB;
+                        end
+                        `USE_UART: begin
+                            // TODO: uart
+                            state <= `STATE_IF;
+                        end
+                        default: begin
+                            state <= `STATE_IF;
+                        end
+                    endcase
+                end
+                else if(mem_wr) begin
+                    // TODO: byte enable
+                    case(mem_use)
+                        `USE_BASE: begin
+                            base_address <= ram_addr;
+                            we_base_n <= 1'b0;
+                            data_base_in <= mem_wr_data;
+                            state <= `STATE_WB;
+                        end
+                        `USE_EXT: begin
+                            ext_address <= ram_addr;
+                            we_ext_n <= 1'b0;
+                            data_ext_in <= mem_wr_data;
+                            state <= `STATE_WB;
+                        end
+                        `USE_UART: begin
+                            // TODO: uart
+                            state <= `STATE_IF;
+                        end
+                        default: begin
+                            state <= `STATE_IF;
+                        end
+                    endcase
+                end
                 else begin
+                    // 如果没有访存那就直接写回
                     if (wb) begin
                         reg_we <= 1'b1;
                         reg_wdata <= wb_data;
                     end
-                    // 写回也在这个阶段做完
-                    // 不进行mem的已经可以开始检查串口了
-                    state <= `STATE_UART;
+                    state <= `STATE_IF;
                 end
             end
-            `STATE_MEM: begin
-                if(sram_done) begin
-                    {oe_sram_n, we_sram_n} <= 2'b11;
-                    // 说明要做写回
-                    if (mem_rd) begin
-                        reg_we <= 1'b1;
-                        reg_wdata <= data_sram_out;
+            `STATE_WB: begin
+                case (mem_use)
+                    `USE_BASE: begin
+                        if(base_done) begin
+                            {oe_base_n, we_base_n} <= 2'b11;
+                            // 访存写回
+                            if (mem_rd) begin
+                                reg_we <= 1'b1;
+                                reg_wdata <= data_base_out;
+                            end 
+                            state <= `STATE_IF;
+                        end
                     end
-                    state <= `STATE_UART;
-                end
-            end
-            `STATE_UART: begin
-                reg_we <= 1'b0; // 寄存器已写完
-                // do nothing, prepare for if
-                address <= pc[21:2];
-                oe_sram_n <= 1'b0;
-                state <= `STATE_IF;
+                    `USE_EXT: begin
+                        if(ext_done) begin
+                            {oe_ext_n, we_ext_n} <= 2'b11;
+                            // 访存写回
+                            if (mem_rd) begin
+                                reg_we <= 1'b1;
+                                reg_wdata <= data_ext_out;
+                            end 
+                            state <= `STATE_IF;  
+                        end
+                    end
+                    default: begin
+                        state <= `STATE_IF;
+                    end
+                endcase
             end
         endcase 
     end

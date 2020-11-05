@@ -15025,3 +15025,6 @@ selectGraphicalView(RDIResource.RDIViews_WAVEFORM_VIEWER, 479, 281); // n (o, cr
 // WARNING: HEventQueue.dispatchEvent() is taking  1159200 ms.
 // WARNING: HEventQueue.dispatchEvent() is taking  1149 ms.
 // HMemoryUtils.trashcanNow. Engine heap size: 1,093 MB. GUI used memory: 98 MB. Current time: 11/5/20, 1:34:28 PM CST
+// HMemoryUtils.trashcanNow. Engine heap size: 1,093 MB. GUI used memory: 97 MB. Current time: 11/5/20, 2:04:28 PM CST
+// HMemoryUtils.trashcanNow. Engine heap size: 1,093 MB. GUI used memory: 97 MB. Current time: 11/5/20, 2:34:29 PM CST
+// HMemoryUtils.trashcanNow. Engine heap size: 1,093 MB. GUI used memory: 98 MB. Current time: 11/5/20, 3:04:29 PM CST
