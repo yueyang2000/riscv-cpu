@@ -56,6 +56,7 @@ wire [2:0] funct3 = inst[14:12];
 wire [6:0] funct7 = inst[31:25];
 
 // wire arith_sign = inst[30];
+wire[1:0] mem_addr_offset = mem_addr - { mem_addr[31:2], 2'b0 };
 
 always @(*) begin
     instValid <= 1;
@@ -160,10 +161,23 @@ always @(*) begin
             mem_addr <= reg1_data_i + immI;   
             case(funct3)                     
                 `LS_W: begin
-                    ram_be_n <= 4'b0000;
+                    ram_be_n <= `BE_WORD;
                 end
-                `LS_B: begin
-                    ram_be_n <= 4'b1110;
+                `LS_B: begin         
+                    case(mem_addr_offset)
+                        2'b0:begin
+                            ram_be_n <= `BE_BYTE_0;
+                        end
+                        2'b01:begin
+                            ram_be_n <= `BE_BYTE_1;
+                        end
+                        2'b10:begin
+                            ram_be_n <= `BE_BYTE_2;
+                        end
+                        2'b11:begin
+                            ram_be_n <= `BE_BYTE_3;
+                        end
+                    endcase
                 end
                 default:
                     instValid <= 0;
@@ -171,15 +185,32 @@ always @(*) begin
         end
         `OP_STORE: begin
             mem_wr <= 1;
-            mem_addr <= reg1_data_i + immS;
-            mem_wr_data <= reg2_data_i;
+            mem_addr <= reg1_data_i + immS;      
             case (funct3)
                 `LS_W:begin
-                    ram_be_n <= 4'b0000;
+                    ram_be_n <= `BE_WORD;
+                    mem_wr_data <= reg2_data_i;
                 end                
-                `LS_W:begin
-                    ram_be_n <= 4'b1110;
-                end 
+                `LS_B: begin         
+                    case(mem_addr_offset)
+                        2'b0:begin
+                            ram_be_n <= `BE_BYTE_0;
+                            mem_wr_data <= reg2_data_i;
+                        end
+                        2'b01:begin
+                            ram_be_n <= `BE_BYTE_1;
+                            mem_wr_data <= reg2_data_i << 8;
+                        end
+                        2'b10:begin
+                            ram_be_n <= `BE_BYTE_2;
+                            mem_wr_data <= reg2_data_i << 16;
+                        end
+                        2'b11:begin
+                            ram_be_n <= `BE_BYTE_3;
+                            mem_wr_data <= reg2_data_i << 24;
+                        end
+                    endcase
+                end
                 default:
                     instValid <= 0;
             endcase
