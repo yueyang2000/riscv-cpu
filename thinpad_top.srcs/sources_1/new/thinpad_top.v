@@ -238,11 +238,14 @@ exe _exe(
 
 // 包含字节使能的判断，符号扩展
 wire[`DataBus] data_to_load;
+wire[7:0] uart_rd = (mem_addr == `UART_DATA_ADDR)? data_uart_out: (mem_addr == `UART_STATUS_ADDR)? uart_status : 7'b0; 
+wire[7:0] uart_status = {2'b0, 1'b1, 4'b0, uart_dataready};
 data_loader _data_loader(
     .ram_be_n(ram_be_n),
     .mem_use(mem_use),
     .data_base_out(data_base_out),
     .data_ext_out(data_ext_out),
+    .uart_rd(uart_rd),
     .data_to_load(data_to_load)
 );
 
@@ -259,21 +262,24 @@ always@(posedge clk or posedge rst) begin
         pc <= `START_ADDR;
         {oe_base_n, we_base_n} <= 2'b11;
         {oe_ext_n, we_ext_n} <= 2'b11;
+        {oe_uart_n, we_uart_n} <= 2'b11;
         state <= `STATE_BOOT;
         inst <= 32'b0;
+
         base_address <= 20'b0;
         ext_address <= 20'b0;
         data_base_in <= 32'b0;
         data_ext_in <= 32'b0;
         base_ram_be_reg <= 4'b0;
         ext_ram_be_reg <= 4'b0;
+        data_uart_in <= 32'b0;
         reg_we <= 1'b0;
     end
     else begin
         case (state) 
             `STATE_BOOT: begin
                 reg_we <= 1'b0;
-                base_address <= `START_ADDR;
+                base_address <= pc[21:2];
                 oe_base_n <= 1'b0; 
                 state <= `STATE_EXE1;        
             end
@@ -307,8 +313,11 @@ always@(posedge clk or posedge rst) begin
                             state <= `STATE_WB;
                         end
                         `USE_UART: begin
-                            // TODO: uart
-                            state <= `STATE_IF;
+                            if(mem_addr == `UART_DATA_ADDR) begin
+                                // 读串口数据寄存器
+                                oe_uart_n <= 1'b0;
+                            end
+                            state <= `STATE_WB;
                         end
                         default: begin
                             state <= `STATE_IF;
@@ -333,8 +342,22 @@ always@(posedge clk or posedge rst) begin
                             state <= `STATE_WB;
                         end
                         `USE_UART: begin
-                            // TODO: uart
-                            state <= `STATE_IF;
+                            // 一定是SB指令
+                            // 写串口数据
+                            we_uart_n <= 1'b0;
+                            case (ram_be_n)
+                                `BE_BYTE_0:
+                                    data_uart_in <= mem_wr_data[7:0];
+                                `BE_BYTE_1:
+                                    data_uart_in <= mem_wr_data[15:8];
+                                `BE_BYTE_2:
+                                    data_uart_in <= mem_wr_data[23:16];
+                                `BE_BYTE_3:
+                                    data_uart_in <= mem_wr_data[31:24];
+                                default:
+                                    data_uart_in <= 32'hz;
+                            endcase
+                            state <= `STATE_WB;
                         end
                         default: begin
                             state <= `STATE_IF;
@@ -351,6 +374,7 @@ always@(posedge clk or posedge rst) begin
                 end
             end
             `STATE_WB: begin
+                // 其实是访存的收尾阶段
                 case (mem_use)
                     `USE_BASE: begin
                         if(base_done) begin
@@ -371,15 +395,23 @@ always@(posedge clk or posedge rst) begin
                             // 访存写回
                             if (mem_rd) begin
                                 reg_we <= 1'b1;
-                                reg_wdata <= data_ext_out;
+                                reg_wdata <= data_to_load;
                             end 
-                            state <= `STATE_IF;  
+                            state <= `STATE_IF;
                         end
                     end
-                    default: begin
-                        state <= `STATE_IF;
-                    end
+                    `USE_UART: begin
+                        if(uart_done) begin
+                            {oe_uart_n, we_uart_n} <= 2'b11;
+                            if (mem_rd) begin
+                                reg_we <= 1'b1;
+                                reg_wdata <= data_to_load;
+                            end
+                            state <= `STATE_IF;
+                        end
+                    end 
                 endcase
+                
             end
         endcase 
     end
