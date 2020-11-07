@@ -78,6 +78,9 @@
 
 `define START_ADDR 32'h0
 
+// uart
+`define UART_DATA_ADDR 32'h10000000
+`define UART_STATUS_ADDR 32'h10000005 
 `define BE_WORD 4'b0000
 `define BE_BYTE_0 4'b1110
 `define BE_BYTE_1 4'b1101

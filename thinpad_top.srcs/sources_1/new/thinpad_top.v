@@ -114,23 +114,21 @@ end
 
 
 
-//disable byte
-assign base_ram_be_n = 4'b0000;
-assign ext_ram_be_n = 4'b0000;
-
 // disable uart
 assign uart_rdn = 1'b1;
 assign uart_wrn = 1'b1;
 
-wire clk = clk_11M0592;
+wire clk = clk_50M;
 wire rst = reset_btn; 
 
-wire[31:0] data_base_out;
+wire[`DataBus] data_base_out;
 wire base_done;
 reg oe_base_n, we_base_n;
 reg[19:0] base_address; // 喂给base_ram的地址
 assign base_ram_addr = base_address;
-reg[31:0] data_base_in;
+reg[`DataBus] data_base_in;
+reg[3:0] base_ram_be_reg;
+assign base_ram_be_n = base_ram_be_reg;
 sram_io base_ram_io(
     .clk(clk),
     .rst(rst),
@@ -145,12 +143,14 @@ sram_io base_ram_io(
     .ram_we_n(base_ram_we_n)
 );
 
-wire[31:0] data_ext_out;
+wire[`DataBus] data_ext_out;
 wire ext_done;
 reg oe_ext_n, we_ext_n;
 reg[19:0] ext_address; // 喂给ext_ram的地址
 assign ext_ram_addr = ext_address;
-reg[31:0] data_ext_in;
+reg[`DataBus] data_ext_in;
+reg[3:0] ext_ram_be_reg;
+assign ext_ram_be_n = ext_ram_be_reg;
 sram_io ext_ram_io(
     .clk(clk),
     .rst(rst),
@@ -235,6 +235,9 @@ always@(posedge clk or posedge rst) begin
         base_address <= 20'b0;
         ext_address <= 20'b0;
         data_base_in <= 32'b0;
+        data_ext_in <= 32'b0;
+        base_ram_be_reg <= 4'b0;
+        ext_ram_be_reg <= 4'b0;
         reg_we <= 1'b0;
     end
     else begin
@@ -284,16 +287,18 @@ always@(posedge clk or posedge rst) begin
                     endcase
                 end
                 else if(mem_wr) begin
-                    // TODO: byte enable
+                    // 写的时候需要赋值字节使能
                     case(mem_use)
                         `USE_BASE: begin
                             base_address <= ram_addr;
+                            base_ram_be_reg <= ram_be_n;
                             we_base_n <= 1'b0;
                             data_base_in <= mem_wr_data;
                             state <= `STATE_WB;
                         end
                         `USE_EXT: begin
                             ext_address <= ram_addr;
+                            ext_ram_be_reg <= ram_be_n;
                             we_ext_n <= 1'b0;
                             data_ext_in <= mem_wr_data;
                             state <= `STATE_WB;
@@ -321,6 +326,7 @@ always@(posedge clk or posedge rst) begin
                     `USE_BASE: begin
                         if(base_done) begin
                             {oe_base_n, we_base_n} <= 2'b11;
+                            base_ram_be_reg <= 4'b0;
                             // 访存写回
                             if (mem_rd) begin
                                 reg_we <= 1'b1;
@@ -332,6 +338,7 @@ always@(posedge clk or posedge rst) begin
                     `USE_EXT: begin
                         if(ext_done) begin
                             {oe_ext_n, we_ext_n} <= 2'b11;
+                            ext_ram_be_reg <= 4'b0;
                             // 访存写回
                             if (mem_rd) begin
                                 reg_we <= 1'b1;
