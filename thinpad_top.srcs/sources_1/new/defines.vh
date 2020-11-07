@@ -81,7 +81,7 @@
 `define USE_UART 2'b11 
 
 `define START_ADDR 32'h80000000
-
+// `define START_ADDR 32'h0
 // uart
 `define UART_DATA_ADDR 32'h10000000
 `define UART_STATUS_ADDR 32'h10000005 
