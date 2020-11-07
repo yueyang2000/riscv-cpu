@@ -112,7 +112,7 @@ end
 //     end
 // end
 
-wire clk = clk_11M0592;
+wire clk = clk_50M;
 wire rst = reset_btn; 
 
 reg oe_uart_n, we_uart_n;
