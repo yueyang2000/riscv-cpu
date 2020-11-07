@@ -112,14 +112,30 @@ end
 //     end
 // end
 
-
-
-// disable uart
-assign uart_rdn = 1'b1;
-assign uart_wrn = 1'b1;
-
 wire clk = clk_50M;
 wire rst = reset_btn; 
+
+reg oe_uart_n, we_uart_n;
+reg[7:0] data_uart_in;
+wire[7:0] data_uart_out;
+wire uart_done;
+uart_io _uart_io(
+    .clk(clk),
+    .rst(reset_btn),
+    .oen(oe_uart_n),
+    .wen(we_uart_n),
+    .data_in(data_uart_in),
+    .data_out(data_uart_out),
+    .done(uart_done),
+    .base_ram_data_wire(base_ram_data),
+    .uart_rdn(uart_rdn), 
+    .uart_wrn(uart_wrn), 
+    .uart_dataready(uart_dataready),
+    .uart_tbre(uart_tbre), 
+    .uart_tsre(uart_tsre)
+);
+
+
 
 wire[`DataBus] data_base_out;
 wire base_done;
@@ -218,6 +234,19 @@ exe _exe(
     .wb_data(wb_data),
     .ram_be_n(ram_be_n)
 );
+
+
+// 包含字节使能的判断，符号扩展
+wire[`DataBus] data_to_load;
+data_loader _data_loader(
+    .ram_be_n(ram_be_n),
+    .mem_use(mem_use),
+    .data_base_out(data_base_out),
+    .data_ext_out(data_ext_out),
+    .data_to_load(data_to_load)
+);
+
+
 // program counter
 reg [`InstAddrBus] pc;
 wire [`InstAddrBus] new_pc = branch? branch_addr: pc + 4;
@@ -330,7 +359,7 @@ always@(posedge clk or posedge rst) begin
                             // 访存写回
                             if (mem_rd) begin
                                 reg_we <= 1'b1;
-                                reg_wdata <= data_base_out;
+                                reg_wdata <= data_to_load;                
                             end 
                             state <= `STATE_IF;
                         end
