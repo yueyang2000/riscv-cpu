@@ -82,7 +82,8 @@ wire[`DataBus] ctz_result = reg1_data_i[0] ? 0 : reg1_data_i[1] ? 1 : reg1_data_
         reg1_data_i[24] ? 24 : reg1_data_i[25] ? 25 : reg1_data_i[26] ? 26 :
         reg1_data_i[27] ? 27 : reg1_data_i[28] ? 28 : reg1_data_i[29] ? 29 :
         reg1_data_i[30] ? 30 : reg1_data_i[31] ? 31 : 32;
-
+wire[`RegBus] min_result = {reg1_data_i[31], reg2_data_i[31]} == 2'b01 ? reg2_data_i : {reg1_data_i[31], reg2_data_i[31]} == 2'b10 ? reg1_data_i :
+                        reg1_data_i < reg2_data_i ? reg1_data_i : reg2_data_i;
 always @(*) begin
     instValid <= 1;
     mem_rd <= 0;
@@ -112,7 +113,7 @@ always @(*) begin
                 end
                 `ARITH_XOR: begin
                     if(funct7 == `ARITH_MIN_FUNCT7)
-                        wb_data <= (reg1_data_i < reg2_data_i ? reg1_data_i : reg2_data_i);
+                        wb_data <= min_result;
                     else
                         wb_data <= reg1_data_i ^ reg2_data_i;
                 end
