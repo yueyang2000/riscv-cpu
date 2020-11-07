@@ -425,7 +425,6 @@ always@(posedge clk or posedge rst) begin
                         end
                     end 
                 endcase
-                
             end
         endcase 
     end

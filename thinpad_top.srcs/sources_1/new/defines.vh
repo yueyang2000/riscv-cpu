@@ -47,6 +47,10 @@
 `define ARITH_SUB_FUNCT7 7'b0100000
 `define ARITH_MIN_FUNCT7 7'b0000101
 
+// clz ctz prefix
+`define CLZ_PREFIX 12'b011000000000
+`define CTZ_PREFIX 12'b011000000001
+
 // funct3 of branch instructions
 `define BRANCH_BEQ 3'b000
 `define BRANCH_BNE 3'b001 

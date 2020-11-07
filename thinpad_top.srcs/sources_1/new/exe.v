@@ -55,6 +55,8 @@ wire[`RegBus] immJ = {extJ, rawJ};
 wire [2:0] funct3 = inst[14:12];
 wire [6:0] funct7 = inst[31:25];
 
+
+
 // wire arith_sign = inst[30];
 wire[1:0] mem_addr_offset = mem_addr - { mem_addr[31:2], 2'b0 };
 
@@ -108,7 +110,36 @@ always @(*) begin
                     wb_data <= reg1_data_i & immI;
                 end
                 `ARITH_SLL: begin
-                    wb_data <= reg1_data_i << shamt;
+                    if(inst[31:20] == `CLZ_PREFIX) begin
+                    wb_data <= reg1_data_i[31] ? 0 : reg1_data_i[30] ? 1 : reg1_data_i[29] ? 2 :
+                                     reg1_data_i[28] ? 3 : reg1_data_i[27] ? 4 : reg1_data_i[26] ? 5 :
+                                     reg1_data_i[25] ? 6 : reg1_data_i[24] ? 7 : reg1_data_i[23] ? 8 :
+                                     reg1_data_i[22] ? 9 : reg1_data_i[21] ? 10 : reg1_data_i[20] ? 11 :
+                                     reg1_data_i[19] ? 12 : reg1_data_i[18] ? 13 : reg1_data_i[17] ? 14 :
+                                     reg1_data_i[16] ? 15 : reg1_data_i[15] ? 16 : reg1_data_i[14] ? 17 :
+                                     reg1_data_i[13] ? 18 : reg1_data_i[12] ? 19 : reg1_data_i[11] ? 20 :
+                                     reg1_data_i[10] ? 21 : reg1_data_i[9] ? 22 : reg1_data_i[8] ? 23 :
+                                     reg1_data_i[7] ? 24 : reg1_data_i[6] ? 25 : reg1_data_i[5] ? 26 :
+                                     reg1_data_i[4] ? 27 : reg1_data_i[3] ? 28 : reg1_data_i[2] ? 29 :
+                                     reg1_data_i[1] ? 30 : reg1_data_i[0] ? 31 : 32;
+                    end
+                    else if(inst[31:20 == `CTZ_PREFIX])begin
+                    wb_data <= reg1_data_i[0] ? 0 : reg1_data_i[1] ? 1 : reg1_data_i[2] ? 2 :
+                                     reg1_data_i[3] ? 3 : reg1_data_i[4] ? 4 : reg1_data_i[5] ? 5 :
+                                     reg1_data_i[6] ? 6 : reg1_data_i[7] ? 7 : reg1_data_i[8] ? 8 :
+                                     reg1_data_i[9] ? 9 : reg1_data_i[10] ? 10 : reg1_data_i[11] ? 11 :
+                                     reg1_data_i[12] ? 12 : reg1_data_i[13] ? 13 : reg1_data_i[14] ? 14 :
+                                     reg1_data_i[15] ? 15 : reg1_data_i[16] ? 16 : reg1_data_i[17] ? 17 :
+                                     reg1_data_i[18] ? 18 : reg1_data_i[19] ? 19 : reg1_data_i[20] ? 20 :
+                                     reg1_data_i[21] ? 21 : reg1_data_i[22] ? 22 : reg1_data_i[23] ? 23 :
+                                     reg1_data_i[24] ? 24 : reg1_data_i[25] ? 25 : reg1_data_i[26] ? 26 :
+                                     reg1_data_i[27] ? 27 : reg1_data_i[28] ? 28 : reg1_data_i[29] ? 29 :
+                                     reg1_data_i[30] ? 30 : reg1_data_i[31] ? 31 : 32;
+                    end
+                    else begin
+                        wb_data <= reg1_data_i << shamt;
+                    end
+                    
                 end
                 `ARITH_SRL: begin
                     wb_data <= reg1_data_i >> shamt;

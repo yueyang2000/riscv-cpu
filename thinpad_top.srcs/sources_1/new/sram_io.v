@@ -20,8 +20,10 @@ module sram_io(
     localparam STATE_IDLE = 3'b000;
     localparam STATE_READ_0 = 3'b001;
     localparam STATE_READ_1 = 3'b010;
-    localparam STATE_WRITE_0 = 3'b011;
-    localparam STATE_WRITE_1 = 3'b100;
+    localparam STATE_READ_2 = 3'b011;
+    localparam STATE_WRITE_0 = 3'b100;
+    localparam STATE_WRITE_1 = 3'b101;
+    localparam STATE_WRITE_2 = 3'b110;
     localparam STATE_DONE = 3'b111;
     
     reg[2:0] state;
@@ -61,11 +63,13 @@ module sram_io(
                     ram_ce_n_flag = 1'b0;
                 end
                 STATE_READ_1: begin
+                    state <= STATE_READ_2;
+                end
+                STATE_READ_2: begin
                     state <= STATE_DONE;
                     ram_oe_n_flag = 1'b1;
                     ram_ce_n_flag = 1'b1;
                     data_out <= ram_data_wire;
-
                 end
                 STATE_WRITE_0: begin
                     state <= STATE_WRITE_1;
@@ -73,6 +77,9 @@ module sram_io(
                     ram_ce_n_flag = 1'b0;
                 end
                 STATE_WRITE_1: begin
+                    state <= STATE_WRITE_2;
+                end
+                STATE_WRITE_2: begin
                     state <= STATE_DONE;
                     ram_we_n_flag = 1'b1;
                     ram_ce_n_flag = 1'b1;
