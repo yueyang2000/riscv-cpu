@@ -238,7 +238,7 @@ exe _exe(
 
 // 包含字节使能的判断，符号扩展
 wire[`DataBus] data_to_load;
-wire[7:0] uart_rd = (mem_addr == `UART_DATA_ADDR)? data_uart_out: (mem_addr == `UART_STATUS_ADDR)? uart_status : 7'b0; 
+wire[7:0] uart_rd = (mem_addr == `UART_DATA_ADDR)? data_uart_out: (mem_addr == `UART_STATUS_ADDR)? uart_status : 8'b0; 
 wire[7:0] uart_status = {2'b0, 1'b1, 4'b0, uart_dataready};
 data_loader _data_loader(
     .ram_be_n(ram_be_n),
@@ -355,7 +355,7 @@ always@(posedge clk or posedge rst) begin
                                 `BE_BYTE_3:
                                     data_uart_in <= mem_wr_data[31:24];
                                 default:
-                                    data_uart_in <= 32'hz;
+                                    data_uart_in <= 8'hzz;
                             endcase
                             state <= `STATE_WB;
                         end

@@ -76,7 +76,7 @@
 `define USE_EXT 2'b10 
 `define USE_UART 2'b11 
 
-`define START_ADDR 32'h0
+`define START_ADDR 32'h80000000
 
 // uart
 `define UART_DATA_ADDR 32'h10000000

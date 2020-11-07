@@ -145,7 +145,7 @@ always @(*) begin
             wb <= 1;
             wb_data <= pc + 4;
             branch <= 1;
-            branch_addr <= reg1_data_i + immJ; // 应该是取高31位拼0，但是由于RAM读取的时候忽略低两位，因此没必要去拼0
+            branch_addr <= reg1_data_i + immI; // 应该是取高31位拼0，但是由于RAM读取的时候忽略低两位，因此没必要去拼0
         end
         `OP_LUI: begin
             wb <= 1;

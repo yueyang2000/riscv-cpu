@@ -13,7 +13,7 @@ wire[`DataAddrBus] mem_addr_sub = mem_addr - 24'h400000;
 always @(*) begin
     mem_use <= `USE_NOTHING;
     // address of lab5 start from 0x0
-    // address of rv start from 0x80000000
+    // address of kernel start from 0x80000000
     if(mem_addr[31:3] == UART_ADDR_PERFIX[31:3])
         mem_use <= `USE_UART;
     else begin
