@@ -280,16 +280,16 @@ always@(posedge clk or posedge rst) begin
                 reg_we <= 1'b0;
                 base_address <= pc[21:2];
                 oe_base_n <= 1'b0; 
-                state <= `STATE_EXE1;        
+                state <= `STATE_EXE;        
             end
             `STATE_IF: begin
                 reg_we <= 1'b0; // 新周期开始前可以写reg
                 pc <= new_pc;
                 base_address <= new_pc[21:2];
                 oe_base_n <= 1'b0; 
-                state <= `STATE_EXE1;
+                state <= `STATE_EXE;
             end
-            `STATE_EXE1: begin
+            `STATE_EXE: begin
                 // EXE阶段及以后不允许修改pc和inst的值
                 // 保证控制信号稳定
                 if(base_done) begin

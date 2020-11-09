@@ -70,10 +70,11 @@
 `define StateBus 3:0
 `define STATE_BOOT 4'b0000
 `define STATE_IF 4'b0001 
-`define STATE_EXE1 4'b0010 
-`define STATE_EXE2 4'b0011
-`define STATE_MEM 4'b00100 
-`define STATE_WB 4'b0101
+`define STATE_EXE 4'b0010 
+`define STATE_MEM 4'b0011
+`define STATE_WB 4'b0100 
+`define STATE_EXP1 4'b0101 
+`define STATE_EXP2 4'b0110 
 
 `define USE_NOTHING 2'b00
 `define USE_BASE 2'b01 
@@ -90,3 +91,25 @@
 `define BE_BYTE_1 4'b1101
 `define BE_BYTE_2 4'b1011
 `define BE_BYTE_3 4'b0111
+
+// exp_code
+`define ExpBus 3:0
+`define exp_inst_addr_mis 4'b0000  
+`define exp_inst_acc_fault 4'b0001  
+`define exp_inst_illegal 4'b0010  
+`define exp_break 4'b0011 
+`define exp_load_addr_mis 4'b0100 
+`define exp_load_acc_fault 4'b0101 
+`define exp_store_addr_mis 4'b0110 
+`define exp_store_acc_fault 4'b0111 
+`define exp_ecall_u 4'b1000 
+`define exp_ecall_s 4'b1001 
+`define exp_ecall_m 4'b1011 
+`define exp_inst_page_fault 4'b1100 
+`define exp_load_page_fault 4'b1101
+`define exp_store_page_fault 4'b1111 
+
+// three type of issue for exp_handle
+`define EXP_NONE 2'b00  
+`define EXP_ERR 2'b01   
+`define EXP_OP 2'b10

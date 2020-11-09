@@ -152,4 +152,81 @@ MIN	rd, rs1, rs2
 - mret
   - pc = mepc
   - 更新mstatus：MIE = MPIE, MPIE = 1
-  - 
+
+- csrrc：
+
+```
+CSRRC  ccccccccccccsssss011ddddd1110011
+t = CSRs[csr]; CSRs[csr] = t &~x[rs1]; x[rd] = t
+
+CSRRS  ccccccccccccsssss010ddddd1110011
+t = CSRs[csr]; CSRs[csr] = t | x[rs1]; x[rd] = t
+
+CSRRW  ccccccccccccsssss001ddddd1110011
+t = CSRs[csr]; CSRs[csr] = x[rs1]; x[rd] = t
+
+EBREAK 00000000000100000000000001110011
+断点异常，mcause编号为3
+
+ECALL  00000000000000000000000001110011
+环境调用，U-mode为8，M-mode为11
+
+MRET   00110000001000000000000001110011
+将 pc 设置为 CSRs[mepc], 
+将特权级设置成CSRs[mstatus].MPP
+CSRs[mstatus].MIE 置成 CSRs[mstatus].MPIE, 并且将CSRs[mstatus].MPIE 为 1
+如果支持用户模式，则将 CSR [mstatus].MPP 设置为 0。
+```
+
+
+
+### 异常种类列举
+
+
+
+module exp_handle
+
+内含csr寄存器，根据exp_if, exp_exe检查到的异常进行处理
+
+
+
+module exp_exe
+
+invalid, mem_addr, mem_rd, mem_wr, exp_op
+
+
+
+module exp_if
+
+new_pc
+
+
+
+
+
+- 指令地址未对齐
+  - mcause = 0
+  - IF阶段发生
+- 指令地址越界
+  - mcause = 1
+  - 界 0x80000000～0x807FFFFF
+  - 用new_pc检查以上两种，IF阶段检查
+- 译码错误 exe检查
+  - mcause = 2
+  - 用instvalid检查，注意exe模块要添加更多的译码检查
+- 断点ebreak, mcause = 3
+  - 直接送异常处理模块
+- load地址未对齐
+  - mcause = 4
+  - lw发生
+- load地址越界
+  - mcause = 5
+- save地址未对齐 mcause = 6
+- save地址越界 mcause = 7
+  - 以上全部在exe阶段检查完
+- ecall
+  - U mode: mcause = 8
+  - S mode: mcause = 9
+  - M mode: mcause = 11
+- 12, 13, 15：页缺失
+
