@@ -42,8 +42,14 @@
 `define ARITH_OR 3'b110
 `define ARITH_AND 3'b111
 
+// funct3 of jalr
+`define JALR_FUNCT3 3'b000
+
 // funct7 of arith instructions
-`define ARITH_ADD_FUNCT7 7'b0
+`define ARITH_ADD_FUNCT7 7'b0000000
+`define ARITH_AND_FUNCT7 7'b0000000
+`define ARITH_OR_FUNCT7 7'b0000000
+`define ARITH_XOR_FUNCT7 7'b0000000
 `define ARITH_SUB_FUNCT7 7'b0100000
 `define ARITH_MIN_FUNCT7 7'b0000101
 

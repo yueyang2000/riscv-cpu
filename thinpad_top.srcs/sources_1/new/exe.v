@@ -84,6 +84,8 @@ wire[`DataBus] ctz_result = reg1_data_i[0] ? 0 : reg1_data_i[1] ? 1 : reg1_data_
         reg1_data_i[30] ? 30 : reg1_data_i[31] ? 31 : 32;
 wire[`RegBus] min_result = {reg1_data_i[31], reg2_data_i[31]} == 2'b01 ? reg2_data_i : {reg1_data_i[31], reg2_data_i[31]} == 2'b10 ? reg1_data_i :
                         reg1_data_i < reg2_data_i ? reg1_data_i : reg2_data_i;
+
+    
 always @(*) begin
     instValid <= 1;
     mem_rd <= 0;
@@ -100,22 +102,52 @@ always @(*) begin
             wb <= 1;
             case(funct3)
                 `ARITH_ADD: begin 
-                    if(funct7 == `ARITH_SUB_FUNCT7)
+                    if(funct7 == `ARITH_SUB_FUNCT7) begin
                         wb_data <= reg1_data_i - reg2_data_i; // SUB
-                    else
+                    end
+                    else if(`ARITH_ADD_FUNCT7)begin
                         wb_data <= reg1_data_i + reg2_data_i; // ADD
+                    end
+                    else begin
+                        instValid <= 0;
+                    end
                 end
                 `ARITH_AND: begin
-                    wb_data <= reg1_data_i & reg2_data_i; 
+                    if(funct7 == `ARITH_AND_FUNCT7) begin
+                        wb_data <= reg1_data_i & reg2_data_i; 
+                    end
+                    else begin
+                        instValid <= 0;
+                    end
                 end
                 `ARITH_OR: begin
-                    wb_data <= reg1_data_i | reg2_data_i; 
+                    if(funct7 == `ARITH_OR_FUNCT7) begin
+                        wb_data <= reg1_data_i | reg2_data_i;
+                    end
+                    else begin
+                        instValid <= 0;
+                    end
                 end
                 `ARITH_XOR: begin
-                    if(funct7 == `ARITH_MIN_FUNCT7)
+                    // case(funct7)
+                    //     `ARITH_MIN_FUNCT7:begin
+                    //         wb_data <= min_result;
+                    //     end
+                    //     `ARITH_XOR_FUNCT7:begin
+                    //         wb_data <= reg1_data_i ^ reg2_data_i;
+                    //     end
+                    //     default:
+                    //         instValid <= 0;
+                    // endcase
+                    if(funct7 == `ARITH_MIN_FUNCT7)begin
                         wb_data <= min_result;
-                    else
+                    end
+                    else if (funct7 == `ARITH_XOR_FUNCT7)begin
                         wb_data <= reg1_data_i ^ reg2_data_i;
+                    end
+                    else begin
+                        instValid <= 0;
+                    end
                 end
                 default:
                     instValid <= 0;
@@ -143,7 +175,6 @@ always @(*) begin
                     else begin
                         wb_data <= reg1_data_i << shamt;
                     end
-                    
                 end
                 `ARITH_SRL: begin
                     wb_data <= reg1_data_i >> shamt;
@@ -177,10 +208,15 @@ always @(*) begin
             branch_addr <= pc + immJ;
         end
         `OP_JALR: begin
-            wb <= 1;
-            wb_data <= pc + 4;
-            branch <= 1;
-            branch_addr <= reg1_data_i + immI; // 应该是取高31位拼0，但是由于RAM读取的时候忽略低两位，因此没必要去拼0
+            if(funct3 == `JALR_FUNCT3) begin
+                wb <= 1;
+                wb_data <= pc + 4;
+                branch <= 1;
+                branch_addr <= reg1_data_i + immI; // 应该是取高31位拼0，但是由于RAM读取的时候忽略低两位，因此没必要去拼0
+            end
+            else begin
+                instValid <= 0;
+            end
         end
         `OP_LUI: begin
             wb <= 1;
@@ -249,6 +285,9 @@ always @(*) begin
                 default:
                     instValid <= 0;
             endcase
+        end
+        `OP_SYS:begin //交给exp_handle去处理
+            instValid <= 1; 
         end
         default:
             instValid <= 0;
