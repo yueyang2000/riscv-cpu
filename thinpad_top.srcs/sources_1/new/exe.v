@@ -55,9 +55,6 @@ wire[`RegBus] immJ = {extJ, rawJ};
 wire [2:0] funct3 = inst[14:12];
 wire [6:0] funct7 = inst[31:25];
 
-
-
-// wire arith_sign = inst[30];
 wire[1:0] mem_addr_offset = mem_addr - { mem_addr[31:2], 2'b0 };
 
 wire[`DataBus] clz_result = reg1_data_i[31] ? 0 : reg1_data_i[30] ? 1 : reg1_data_i[29] ? 2 :
@@ -86,6 +83,27 @@ wire[`RegBus] min_result = {reg1_data_i[31], reg2_data_i[31]} == 2'b01 ? reg2_da
                         reg1_data_i < reg2_data_i ? reg1_data_i : reg2_data_i;
 
     
+wire[`DataBus] add_result = reg1_data_i + reg2_data_i;
+wire[`DataBus] sub_result = reg1_data_i - reg2_data_i;
+wire[`DataBus] and_result = reg1_data_i & reg2_data_i; 
+wire[`DataBus] or_result = reg1_data_i | reg2_data_i;
+wire[`DataBus] xor_result = reg1_data_i ^ reg2_data_i;
+wire[`DataBus] ori_result = reg1_data_i | immI;
+wire[`DataBus] addi_result = reg1_data_i + immI;
+wire[`DataBus] andi_result = reg1_data_i & immI;
+wire[`DataBus] slli_result = reg1_data_i << shamt;
+wire[`DataBus] srli_result = reg1_data_i >> shamt;
+wire[`DataBus] b_addr = pc + immB;
+wire[`DataBus] jal_addr = pc + immJ;
+wire[`DataBus] jalr_addr= reg1_data_i + immI;
+wire[`DataBus] auipc_addr = pc + immU;
+wire[`DataBus] load_addr = reg1_data_i + immI;
+wire[`DataBus] store_addr = reg1_data_i + immS;
+wire[`DataBus] store_byte0 = {24'b0, reg2_data_i[7:0]};
+wire[`DataBus] store_byte1 = {24'b0, reg2_data_i[15:8]};
+wire[`DataBus] store_byte2 = {24'b0, reg2_data_i[23:16]};
+wire[`DataBus] store_byte3 = {24'b0, reg2_data_i[31:24]};
+
 always @(*) begin
     instValid <= 1;
     mem_rd <= 0;
@@ -103,10 +121,10 @@ always @(*) begin
             case(funct3)
                 `ARITH_ADD: begin 
                     if(funct7 == `ARITH_SUB_FUNCT7) begin
-                        wb_data <= reg1_data_i - reg2_data_i; // SUB
+                        wb_data <= sub_result; // SUB
                     end
                     else if(`ARITH_ADD_FUNCT7)begin
-                        wb_data <= reg1_data_i + reg2_data_i; // ADD
+                        wb_data <= add_result; // ADD
                     end
                     else begin
                         instValid <= 0;
@@ -114,7 +132,7 @@ always @(*) begin
                 end
                 `ARITH_AND: begin
                     if(funct7 == `ARITH_AND_FUNCT7) begin
-                        wb_data <= reg1_data_i & reg2_data_i; 
+                        wb_data <= and_result;
                     end
                     else begin
                         instValid <= 0;
@@ -122,28 +140,18 @@ always @(*) begin
                 end
                 `ARITH_OR: begin
                     if(funct7 == `ARITH_OR_FUNCT7) begin
-                        wb_data <= reg1_data_i | reg2_data_i;
+                        wb_data <= or_result;
                     end
                     else begin
                         instValid <= 0;
                     end
                 end
                 `ARITH_XOR: begin
-                    // case(funct7)
-                    //     `ARITH_MIN_FUNCT7:begin
-                    //         wb_data <= min_result;
-                    //     end
-                    //     `ARITH_XOR_FUNCT7:begin
-                    //         wb_data <= reg1_data_i ^ reg2_data_i;
-                    //     end
-                    //     default:
-                    //         instValid <= 0;
-                    // endcase
                     if(funct7 == `ARITH_MIN_FUNCT7)begin
                         wb_data <= min_result;
                     end
                     else if (funct7 == `ARITH_XOR_FUNCT7)begin
-                        wb_data <= reg1_data_i ^ reg2_data_i;
+                        wb_data <= xor_result;
                     end
                     else begin
                         instValid <= 0;
@@ -157,13 +165,13 @@ always @(*) begin
             wb <= 1;
             case(funct3)
                 `ARITH_OR: begin
-                    wb_data <= reg1_data_i | immI;
+                    wb_data <= ori_result;
                 end
                 `ARITH_ADD: begin
-                    wb_data <= reg1_data_i + immI;
+                    wb_data <= addi_result;
                 end
                 `ARITH_AND: begin
-                    wb_data <= reg1_data_i & immI;
+                    wb_data <= andi_result;
                 end
                 `ARITH_SLL: begin
                     if(inst[31:20] == `CLZ_PREFIX) begin
@@ -173,11 +181,11 @@ always @(*) begin
                         wb_data <= ctz_result;
                     end
                     else begin
-                        wb_data <= reg1_data_i << shamt;
+                        wb_data <= slli_result;
                     end
                 end
                 `ARITH_SRL: begin
-                    wb_data <= reg1_data_i >> shamt;
+                    wb_data <= srli_result;
                 end
                 default:
                     instValid <= 0;
@@ -188,13 +196,13 @@ always @(*) begin
                `BRANCH_BEQ: begin
                     if(reg1_data_i == reg2_data_i) begin
                         branch <= 1;
-                        branch_addr <= pc + immB;
+                        branch_addr <= b_addr;
                     end
                 end
                 `BRANCH_BNE: begin
                     if(reg1_data_i != reg2_data_i) begin
                         branch <= 1;
-                        branch_addr <= pc + immB;
+                        branch_addr <= b_addr;
                     end
                 end
                 default:
@@ -205,14 +213,14 @@ always @(*) begin
             wb <= 1;
             wb_data <= pc + 4;
             branch <= 1;
-            branch_addr <= pc + immJ;
+            branch_addr <= jal_addr;
         end
         `OP_JALR: begin
             if(funct3 == `JALR_FUNCT3) begin
                 wb <= 1;
                 wb_data <= pc + 4;
                 branch <= 1;
-                branch_addr <= reg1_data_i + immI; // 应该是取高31位拼0，但是由于RAM读取的时候忽略低两位，因此没必要去拼0
+                branch_addr <= jalr_addr; // 应该是取高31位拼0，但是由于RAM读取的时候忽略低两位，因此没必要去拼0
             end
             else begin
                 instValid <= 0;
@@ -224,12 +232,12 @@ always @(*) begin
         end
         `OP_AUIPC: begin
             wb <= 1;
-            wb_data <= pc + immU;
+            wb_data <= auipc_addr;
         end
         `OP_LOAD: begin
             wb <= 1;
             mem_rd <= 1;  
-            mem_addr <= reg1_data_i + immI;   
+            mem_addr <= load_addr;  
             case(funct3)                     
                 `LS_W: begin
                     ram_be_n <= `BE_WORD;
@@ -256,7 +264,7 @@ always @(*) begin
         end
         `OP_STORE: begin
             mem_wr <= 1;
-            mem_addr <= reg1_data_i + immS;      
+            mem_addr <=store_addr;    
             case (funct3)
                 `LS_W:begin
                     ram_be_n <= `BE_WORD;
@@ -266,19 +274,19 @@ always @(*) begin
                     case(mem_addr_offset)
                         2'b0:begin
                             ram_be_n <= `BE_BYTE_0;
-                            mem_wr_data <= reg2_data_i;
+                            mem_wr_data <= store_byte0;
                         end
                         2'b01:begin
                             ram_be_n <= `BE_BYTE_1;
-                            mem_wr_data <= reg2_data_i << 8;
+                            mem_wr_data <= store_byte1;
                         end
                         2'b10:begin
                             ram_be_n <= `BE_BYTE_2;
-                            mem_wr_data <= reg2_data_i << 16;
+                            mem_wr_data <= store_byte2;
                         end
                         2'b11:begin
                             ram_be_n <= `BE_BYTE_3;
-                            mem_wr_data <= reg2_data_i << 24;
+                            mem_wr_data <= store_byte3;
                         end
                     endcase
                 end
