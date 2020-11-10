@@ -79,8 +79,7 @@
 `define STATE_EXE 4'b0010 
 `define STATE_MEM 4'b0011
 `define STATE_WB 4'b0100 
-`define STATE_EXP1 4'b0101 
-`define STATE_EXP2 4'b0110 
+`define STATE_EXP 4'b0101 
 
 `define USE_NOTHING 2'b00
 `define USE_BASE 2'b01 
@@ -119,3 +118,11 @@
 `define EXP_NONE 2'b00  
 `define EXP_ERR 2'b01   
 `define EXP_OP 2'b10
+
+//ebreak ecall mret prefix 
+`define EBREAK_PREFIX 25'b0000000000010000000000000
+`define ECALL_PREFIX 25'b0000000000000000000000000
+`define MRET_PREFIX 25'b0011000000100000000000000
+
+`define CsrAddrBus 11:0
+

@@ -103,9 +103,11 @@ always@(posedge clk_20M or negedge locked) begin
     else        reset_of_clk20M <= 1'b0;
 end
 
-wire clk = clk_50M;
+wire clk = clk_11M0592;
 wire rst = reset_btn;
 
+
+// ===== 串口 ===== 
 reg oe_uart_n, we_uart_n;
 reg[7:0] data_uart_in;
 wire[7:0] data_uart_out;
@@ -126,8 +128,7 @@ uart_io _uart_io(
     .uart_tsre(uart_tsre)
 );
 
-
-
+// ===== 存储设备 =====
 wire[`DataBus] data_base_out;
 wire base_done;
 reg oe_base_n, we_base_n;
@@ -174,23 +175,30 @@ sram_io ext_ram_io(
 
 reg reg_we;
 reg[`DataBus] reg_wdata;
+reg[`RegAddrBus] reg_waddr;
 wire[`RegAddrBus] reg1_addr;
 wire[`DataBus] reg1_data;
 wire[`RegAddrBus] reg2_addr;
 wire[`DataBus] reg2_data;
+// 为异常处理模块准备
+wire[`RegAddrBus] reg3_addr;
+wire[`DataBus] reg3_data;
+
 regfile _regfile(
     .clk(clk),
     .rst(rst),
     .we(reg_we),
-    .waddr(wb_reg_addr),
+    .waddr(reg_waddr),
     .wdata(reg_wdata),
     .raddr1(reg1_addr),
     .rdata1(reg1_data),
     .raddr2(reg2_addr),
-    .rdata2(reg2_data)
+    .rdata2(reg2_data),
+    .raddr3(reg3_addr),
+    .rdata3(reg3_data)
 );
 
-
+// ===== 译码执行 ======
 wire [1:0] mem_use;
 wire [19:0] ram_addr;
 addr_decode _addr_decode(
@@ -239,10 +247,80 @@ data_loader _data_loader(
     .data_to_load(data_to_load)
 );
 
+// ===== 异常处理相关 =====
+wire[1:0] exception_if;
+wire[`ExpBus] exp_code_if;
+exp_if _exp_if(
+    .if_addr(new_pc),
+    .exception(exception_if),
+    .exp_code(exp_code_if)
+);
+
+wire[1:0] exception_exe;
+wire[`ExpBus] exp_code_exe;
+exp_exe _exp_exe(
+    .inst(inst),
+    .instValid(instValid),
+    .mem_rd(mem_rd),
+    .mem_wr(mem_wr),
+    .ram_be_n(ram_be_n),
+    .mem_addr(mem_addr),
+    .exception(exception_exe),
+    .exp_code(exp_code_exe)
+);
+
+reg[1:0] exception_handle;
+reg[`ExpBus] exp_code_handle;
+wire ebranch;
+wire[`InstAddrBus] ebranch_addr;
+wire exp_wb_reg;
+wire[`RegAddrBus] exp_wb_reg_addr;
+wire[`DataBus] exp_wb_reg_data;
+wire exp_wb_csr;
+wire[`CsrAddrBus] exp_wb_csr_addr;
+wire[`DataBus] exp_wb_csr_data;
+exp_handle _exp_handle(
+    .exception(exception_handle),
+    .exp_code(exp_code_handle),
+    .inst(inst),
+    .pc(pc),
+    .mem_addr(mem_addr),
+
+    .reg_data_i(reg3_data),
+    .reg_addr_o(reg3_addr),
+    .csr_data_i(csr_rd_data),
+    .csr_addr_o(csr_rd_addr),
+
+    .ebranch(ebranch),
+    .ebranch_addr(ebranch_addr),
+
+    .wb_reg(exp_wb_reg),
+    .wb_reg_addr(exp_wb_reg_addr),
+    .wb_reg_data(exp_wb_reg_data),
+    .wb_csr(exp_wb_csr),
+    .wb_csr_addr(exp_wb_csr_addr),
+    .wb_csr_data(exp_wb_csr_data)
+);
+
+wire[`DataBus] csr_rd_data;
+wire[`CsrAddrBus] csr_rd_addr;
+reg csr_we;
+csr_regfile _csr_regfile(
+    .clk(clk),
+    .rst(rst),
+    .csr_rd_data(csr_rd_data),
+    .csr_rd_addr(csr_rd_addr),
+    .csr_we(csr_we),
+    .csr_wr_addr(exp_wb_csr_addr),
+    .csr_wr_data(exp_wb_csr_data)
+);
+
+// ===== 状态机 =====
 
 // program counter
 reg [`InstAddrBus] pc;
-wire [`InstAddrBus] new_pc = branch? branch_addr: pc + 4;
+reg [`InstAddrBus] new_pc;
+// wire [`InstAddrBus] new_pc = ebranch ? ebranch_addr : branch? branch_addr: pc + 4;
 // instruction
 reg [`InstBus] inst;
 reg [`StateBus] state;
@@ -250,12 +328,13 @@ reg [`StateBus] state;
 always@(posedge clk or posedge rst) begin
     if(rst)begin
         pc <= `START_ADDR;
-        {oe_base_n, we_base_n} <= 2'b11;
-        {oe_ext_n, we_ext_n} <= 2'b11;
-        {oe_uart_n, we_uart_n} <= 2'b11;
+        new_pc <= `START_ADDR;
         state <= `STATE_BOOT;
         inst <= 32'b0;
 
+        {oe_base_n, we_base_n} <= 2'b11;
+        {oe_ext_n, we_ext_n} <= 2'b11;
+        {oe_uart_n, we_uart_n} <= 2'b11;
         base_address <= 20'b0;
         ext_address <= 20'b0;
         data_base_in <= 32'b0;
@@ -263,22 +342,34 @@ always@(posedge clk or posedge rst) begin
         base_ram_be_reg <= 4'b0;
         ext_ram_be_reg <= 4'b0;
         data_uart_in <= 32'b0;
+
         reg_we <= 1'b0;
+        csr_we <= 1'b0;
+        reg_wdata <= `ZeroWord;
+        reg_waddr <= 0;
+        exp_code_handle <= 0;
+        exception_handle <= 0;
     end
     else begin
         case (state) 
             `STATE_BOOT: begin
-                reg_we <= 1'b0;
                 base_address <= pc[21:2];
                 oe_base_n <= 1'b0; 
                 state <= `STATE_EXE;        
             end
             `STATE_IF: begin
-                reg_we <= 1'b0; // 新周期开始前可以写reg
-                pc <= new_pc;
-                base_address <= new_pc[21:2];
-                oe_base_n <= 1'b0; 
-                state <= `STATE_EXE;
+                {csr_we, reg_we} <= 2'b00; // 新周期开始前可以写reg
+                pc <= new_pc; // 错了也要更新到new_pc
+                if (exception_if != `EXP_NONE) begin
+                    exp_code_handle <= exp_code_if;
+                    exception_handle <= exception_if;
+                    state <= `STATE_EXP;
+                end
+                else begin
+                    base_address <= new_pc[21:2];
+                    oe_base_n <= 1'b0; 
+                    state <= `STATE_EXE;
+                end
             end
             `STATE_EXE: begin
                 // EXE阶段及以后不允许修改pc和inst的值
@@ -290,92 +381,104 @@ always@(posedge clk or posedge rst) begin
                 end
             end
             `STATE_MEM: begin
-                if (mem_rd) begin
-                    case (mem_use)
-                        `USE_BASE: begin
-                            base_address <= ram_addr;
-                            oe_base_n <= 1'b0;
-                            state <= `STATE_WB;
-                        end
-                        `USE_EXT: begin
-                            ext_address <= ram_addr;
-                            oe_ext_n <= 1'b0;
-                            state <= `STATE_WB;
-                        end
-                        `USE_UART: begin
-                            if(mem_addr == `UART_DATA_ADDR) begin
-                                // 读串口数据寄存器
-                                oe_uart_n <= 1'b0;
-                                state <= `STATE_WB;
-                            end
-                            else if(mem_addr == `UART_STATUS_ADDR) begin
-                                // 读串口状态寄存器，直接写回
-                                reg_we <= 1'b1;
-                                reg_wdata <= uart_status;
-                                state <= `STATE_IF;
-                            end
-                            else begin
-                                state <= `STATE_IF;
-                            end
-                        end
-                        default: begin
-                            state <= `STATE_IF;
-                        end
-                    endcase
-                end
-                else if(mem_wr) begin
-                    // 写的时候需要赋值字节使能
-                    case(mem_use)
-                        `USE_BASE: begin
-                            base_address <= ram_addr;
-                            base_ram_be_reg <= ram_be_n;
-                            we_base_n <= 1'b0;
-                            data_base_in <= mem_wr_data;
-                            state <= `STATE_WB;
-                        end
-                        `USE_EXT: begin
-                            ext_address <= ram_addr;
-                            ext_ram_be_reg <= ram_be_n;
-                            we_ext_n <= 1'b0;
-                            data_ext_in <= mem_wr_data;
-                            state <= `STATE_WB;
-                        end
-                        `USE_UART: begin
-                            // 一定是SB指令
-                            // 写串口数据
-                            if(mem_addr == `UART_DATA_ADDR) begin
-                                we_uart_n <= 1'b0;
-                                case (ram_be_n)
-                                    `BE_BYTE_0:
-                                        data_uart_in <= mem_wr_data[7:0];
-                                    `BE_BYTE_1:
-                                        data_uart_in <= mem_wr_data[15:8];
-                                    `BE_BYTE_2:
-                                        data_uart_in <= mem_wr_data[23:16];
-                                    `BE_BYTE_3:
-                                        data_uart_in <= mem_wr_data[31:24];
-                                    default:
-                                        data_uart_in <= 8'hzz;
-                                endcase
-                                state <= `STATE_WB;
-                            end
-                            else begin
-                                // do nothing
-                                state <= `STATE_IF;
-                            end
-                        end
-                        default: begin
-                            state <= `STATE_IF;
-                        end
-                    endcase
+                new_pc <= branch? branch_addr: pc + 4;
+                if(exception_exe != `EXP_NONE) begin
+                    exp_code_handle <= exp_code_exe;
+                    exception_handle <= exception_exe;
+                    state <= `STATE_EXP;
                 end
                 else begin
-                    // 如果没有访存那就直接写回
-                    if (wb) begin
-                        reg_we <= 1'b1;
-                        reg_wdata <= wb_data;
+                    if (mem_rd) begin
+                        case (mem_use)
+                            `USE_BASE: begin
+                                base_address <= ram_addr;
+                                oe_base_n <= 1'b0;
+                                state <= `STATE_WB;
+                            end
+                            `USE_EXT: begin
+                                ext_address <= ram_addr;
+                                oe_ext_n <= 1'b0;
+                                state <= `STATE_WB;
+                            end
+                            `USE_UART: begin
+                                if(mem_addr == `UART_DATA_ADDR) begin
+                                    // 读串口数据寄存器
+                                    oe_uart_n <= 1'b0;
+                                    state <= `STATE_WB;
+                                end
+                                else if(mem_addr == `UART_STATUS_ADDR) begin
+                                    // 读串口状态寄存器，直接写回
+                                    // 写回！
+                                    reg_we <= 1'b1;
+                                    reg_wdata <= uart_status;
+                                    reg_waddr <= wb_reg_addr;
+                                    state <= `STATE_IF;
+                                end
+                                else begin
+                                    state <= `STATE_IF;
+                                end
+                            end
+                            default: begin
+                                state <= `STATE_IF;
+                            end
+                        endcase
                     end
-                    state <= `STATE_IF;
+                    else if(mem_wr) begin
+                        // 写的时候需要赋值字节使能
+                        case(mem_use)
+                            `USE_BASE: begin
+                                base_address <= ram_addr;
+                                base_ram_be_reg <= ram_be_n;
+                                we_base_n <= 1'b0;
+                                data_base_in <= mem_wr_data;
+                                state <= `STATE_WB;
+                            end
+                            `USE_EXT: begin
+                                ext_address <= ram_addr;
+                                ext_ram_be_reg <= ram_be_n;
+                                we_ext_n <= 1'b0;
+                                data_ext_in <= mem_wr_data;
+                                state <= `STATE_WB;
+                            end
+                            `USE_UART: begin
+                                // 一定是SB指令
+                                // 写串口数据
+                                if(mem_addr == `UART_DATA_ADDR) begin
+                                    we_uart_n <= 1'b0;
+                                    case (ram_be_n)
+                                        `BE_BYTE_0:
+                                            data_uart_in <= mem_wr_data[7:0];
+                                        `BE_BYTE_1:
+                                            data_uart_in <= mem_wr_data[15:8];
+                                        `BE_BYTE_2:
+                                            data_uart_in <= mem_wr_data[23:16];
+                                        `BE_BYTE_3:
+                                            data_uart_in <= mem_wr_data[31:24];
+                                        default:
+                                            data_uart_in <= 8'hzz;
+                                    endcase
+                                    state <= `STATE_WB;
+                                end
+                                else begin
+                                    // do nothing
+                                    state <= `STATE_IF;
+                                end
+                            end
+                            default: begin
+                                state <= `STATE_IF;
+                            end
+                        endcase
+                    end
+                    else begin
+                        // 如果没有访存那就直接写回
+                        // 写回！
+                        if (wb) begin
+                            reg_we <= 1'b1;
+                            reg_waddr <= wb_reg_addr;
+                            reg_wdata <= wb_data;
+                        end
+                        state <= `STATE_IF;
+                    end
                 end
             end
             `STATE_WB: begin
@@ -388,6 +491,7 @@ always@(posedge clk or posedge rst) begin
                             // 访存写回
                             if (mem_rd) begin
                                 reg_we <= 1'b1;
+                                reg_waddr <= wb_reg_addr;
                                 reg_wdata <= data_to_load;                
                             end 
                             state <= `STATE_IF;
@@ -400,6 +504,7 @@ always@(posedge clk or posedge rst) begin
                             // 访存写回
                             if (mem_rd) begin
                                 reg_we <= 1'b1;
+                                reg_waddr <= wb_reg_addr;
                                 reg_wdata <= data_to_load;
                             end 
                             state <= `STATE_IF;
@@ -410,12 +515,30 @@ always@(posedge clk or posedge rst) begin
                             {oe_uart_n, we_uart_n} <= 2'b11;
                             if (mem_rd) begin
                                 reg_we <= 1'b1;
+                                reg_waddr <= wb_reg_addr;
                                 reg_wdata <= data_to_load;
                             end
                             state <= `STATE_IF;
                         end
+                    end
+                    default: begin
+                        state <= `STATE_IF;
                     end 
                 endcase
+            end
+            `STATE_EXP: begin
+                new_pc <= ebranch ? ebranch_addr : branch? branch_addr: pc + 4;
+                // 做异常写回
+                if(exp_wb_reg) begin
+                    reg_we <= 1'b1;
+                    reg_waddr <= exp_wb_reg_addr;
+                    reg_wdata <= exp_wb_reg_data;
+                end
+                if(exp_wb_csr) begin
+                    csr_we <= 1'b1;
+                    // 地址和数据是直连的
+                end
+                state <= `STATE_IF;
             end
         endcase 
     end

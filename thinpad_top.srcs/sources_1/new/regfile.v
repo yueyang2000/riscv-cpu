@@ -12,11 +12,17 @@ module regfile(
     output wire[`RegBus] rdata1,
     
     input wire[`RegAddrBus] raddr2,
-    output wire[`RegBus] rdata2
+    output wire[`RegBus] rdata2,
+
+    input wire[`RegAddrBus] raddr3,
+    output wire[`RegBus] rdata3
 );
     reg[`RegBus] regs[0:`RegNum-1];
+
+
     assign rdata1 = regs[raddr1];
     assign rdata2 = regs[raddr2];
+    assign rdata3 = regs[raddr3];
 
     always @ (posedge clk) begin
         if (rst == `RstDisable) begin
