@@ -103,7 +103,7 @@ always@(posedge clk_20M or negedge locked) begin
     else        reset_of_clk20M <= 1'b0;
 end
 
-wire clk = clk_11M0592;
+wire clk = clk_50M;
 wire rst = reset_btn;
 
 reg oe_uart_n, we_uart_n;
