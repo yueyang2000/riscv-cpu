@@ -100,9 +100,9 @@ wire[`DataBus] auipc_addr = pc + immU;
 wire[`DataBus] load_addr = reg1_data_i + immI;
 wire[`DataBus] store_addr = reg1_data_i + immS;
 wire[`DataBus] store_byte0 = {24'b0, reg2_data_i[7:0]};
-wire[`DataBus] store_byte1 = {24'b0, reg2_data_i[15:8]};
-wire[`DataBus] store_byte2 = {24'b0, reg2_data_i[23:16]};
-wire[`DataBus] store_byte3 = {24'b0, reg2_data_i[31:24]};
+wire[`DataBus] store_byte1 = {16'b0, reg2_data_i[7:0], 8'b0};
+wire[`DataBus] store_byte2 = {8'b0, reg2_data_i[7:0], 16'b0};
+wire[`DataBus] store_byte3 = {reg2_data_i[7:0], 24'b0};
 
 always @(*) begin
     instValid <= 1;
