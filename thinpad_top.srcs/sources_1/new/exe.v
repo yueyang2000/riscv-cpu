@@ -123,7 +123,7 @@ always @(*) begin
                     if(funct7 == `ARITH_SUB_FUNCT7) begin
                         wb_data <= sub_result; // SUB
                     end
-                    else if(`ARITH_ADD_FUNCT7)begin
+                    else if(func7 == `ARITH_ADD_FUNCT7)begin
                         wb_data <= add_result; // ADD
                     end
                     else begin
