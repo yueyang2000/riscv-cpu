@@ -96,24 +96,15 @@ pll_example clock_gen
                      // 后级电路复位信号应当由它生成（见下）
  );
 
-reg reset_of_clk10M;
+reg reset_of_clk20M;
 // 异步复位，同步释放，将locked信号转为后级电路的复位reset_of_clk10M
-always@(posedge clk_10M or negedge locked) begin
-    if(~locked) reset_of_clk10M <= 1'b1;
-    else        reset_of_clk10M <= 1'b0;
+always@(posedge clk_20M or negedge locked) begin
+    if(~locked) reset_of_clk20M <= 1'b1;
+    else        reset_of_clk20M <= 1'b0;
 end
 
-// always@(posedge clk_10M or posedge reset_of_clk10M) begin
-//     if(reset_of_clk10M)begin
-//         // Your Code
-//     end
-//     else begin
-//         // Your Code
-//     end
-// end
-
-wire clk = clk_50M;
-wire rst = reset_btn; 
+wire clk = clk_20M;
+wire rst = reset_of_clk20M;
 
 reg oe_uart_n, we_uart_n;
 reg[7:0] data_uart_in;
