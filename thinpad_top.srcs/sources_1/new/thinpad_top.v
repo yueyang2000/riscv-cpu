@@ -276,43 +276,26 @@ wire[`InstAddrBus] ebranch_addr;
 wire exp_wb_reg;
 wire[`RegAddrBus] exp_wb_reg_addr;
 wire[`DataBus] exp_wb_reg_data;
-wire exp_wb_csr;
-wire[`CsrAddrBus] exp_wb_csr_addr;
-wire[`DataBus] exp_wb_csr_data;
+reg csr_we;
 exp_handle _exp_handle(
+    .clk(clk),
+    .rst(rst),
     .exception(exception_handle),
     .exp_code(exp_code_handle),
     .inst(inst),
     .pc(pc),
     .mem_addr(mem_addr),
+    .csr_we(csr_we),
 
     .reg_data_i(reg3_data),
     .reg_addr_o(reg3_addr),
-    .csr_data_i(csr_rd_data),
-    .csr_addr_o(csr_rd_addr),
 
     .ebranch(ebranch),
     .ebranch_addr(ebranch_addr),
 
     .wb_reg(exp_wb_reg),
     .wb_reg_addr(exp_wb_reg_addr),
-    .wb_reg_data(exp_wb_reg_data),
-    .wb_csr(exp_wb_csr),
-    .wb_csr_addr(exp_wb_csr_addr),
-    .wb_csr_data(exp_wb_csr_data)
-);
-
-wire[`DataBus] csr_rd_data;
-wire[`CsrAddrBus] csr_rd_addr;
-reg csr_we;
-csr_regfile _csr_regfile(
-    .clk(clk),
-    .rst(rst),
-    .csr_rd_data(csr_rd_data),
-    .csr_rd_addr(csr_rd_addr),
-    .csr_we(csr_we),
-    .csr_wr_addr(exp_wb_csr_addr),
-    .csr_wr_data(exp_wb_csr_data)
+    .wb_reg_data(exp_wb_reg_data)
 );
 
 // ===== 状态机 =====
@@ -320,7 +303,6 @@ csr_regfile _csr_regfile(
 // program counter
 reg [`InstAddrBus] pc;
 reg [`InstAddrBus] new_pc;
-// wire [`InstAddrBus] new_pc = ebranch ? ebranch_addr : branch? branch_addr: pc + 4;
 // instruction
 reg [`InstBus] inst;
 reg [`StateBus] state;
@@ -343,8 +325,7 @@ always@(posedge clk or posedge rst) begin
         ext_ram_be_reg <= 4'b0;
         data_uart_in <= 32'b0;
 
-        reg_we <= 1'b0;
-        csr_we <= 1'b0;
+        {csr_we, reg_we} <= 2'b00;
         reg_wdata <= `ZeroWord;
         reg_waddr <= 0;
         exp_code_handle <= 0;
@@ -527,17 +508,15 @@ always@(posedge clk or posedge rst) begin
                 endcase
             end
             `STATE_EXP: begin
-                new_pc <= ebranch ? ebranch_addr : branch? branch_addr: pc + 4;
+                new_pc <= ebranch ? ebranch_addr : pc + 4;
                 // 做异常写回
                 if(exp_wb_reg) begin
                     reg_we <= 1'b1;
                     reg_waddr <= exp_wb_reg_addr;
                     reg_wdata <= exp_wb_reg_data;
                 end
-                if(exp_wb_csr) begin
-                    csr_we <= 1'b1;
-                    // 地址和数据是直连的
-                end
+                // 无论如何都更新csr寄存器
+                csr_we <= 1'b1;
                 state <= `STATE_IF;
             end
         endcase 
