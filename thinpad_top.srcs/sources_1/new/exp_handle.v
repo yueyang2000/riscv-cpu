@@ -26,9 +26,22 @@ wire [2:0] funct3 = inst[14:12];
 assign wb_reg_addr = inst[11:7];
 // 0-mtvec 1-mcause 2-mepc 3-mtval 4-mstatus 5-mscratch
 reg[`RegBus] csr[0:7];
+reg[1:0] curr_mode;
+reg[1:0] curr_mode_to_write;
 wire[`CsrAddrBus] csr_addr = inst[31:20];
-wire[2:0] csr_addr_map = csr_addr == `CSR_MTVEC ? `MTVEC :  csr_addr == `CSR_MCAUSE ? `MCAUSE : csr_addr == `CSR_MEPC ? `MEPC :
-                        csr_addr == `CSR_MTVAL ? `MTVAL : csr_addr == `CSR_MSTATUS ? `MSTATUS : csr_addr == `CSR_MSCRATCH ? `MSCRATCH : `SATP;
+wire[2:0] csr_addr_map = is_mtvec ? `MTVEC : is_mcause ? `MCAUSE : is_mepc ? `MEPC :
+                        is_mtval ? `MTVAL : is_mstatus ? `MSTATUS : is_mscratch ? `MSCRATCH : `SATP;
+wire is_ebreak = inst[31:7] == `EBREAK_PREFIX;
+wire is_ecall = inst[31:7] == `ECALL_PREFIX;
+wire is_mret = inst[31:7] == `MRET_PREFIX;
+wire is_mtvec = csr_addr == `CSR_MTVEC;
+wire is_mcause = csr_addr == `CSR_MCAUSE;
+wire is_mepc = csr_addr == `CSR_MEPC;
+wire is_mtval = csr_addr == `CSR_MTVAL;
+wire is_mstatus = csr_addr == `CSR_MSTATUS;
+wire is_mscratch = csr_addr == `CSR_MSCRATCH;
+
+wire[`RegBus] mstatus_update = {csr_to_write[`MSTATUS][31:13], curr_mode, csr_to_write[`MSTATUS][10:0]};
 // reg[`DataBus] mtvec;
 // reg[`DataBus] mcause;
 // reg[`DataBus] mepc;
@@ -60,6 +73,7 @@ always @(*) begin
     csr_to_write[`MTVAL] <= csr[`MTVAL];
     csr_to_write[`MSTATUS] <= csr[`MSTATUS];
     csr_to_write[`MSCRATCH] <= csr[`MSCRATCH];
+    curr_mode_to_write <= curr_mode;
 
     ebranch <= 0;
     ebranch_addr <= 0;
@@ -83,30 +97,69 @@ always @(*) begin
             wb_reg <= 1;
             wb_reg_data <= csr[csr_addr_map];
         end
-        else if(inst[31:7] == `EBREAK_PREFIX) begin
+        else if(is_ebreak) begin
             ebranch <= 1;
             ebranch_addr <= csr[`MTVEC];
             csr_to_write[`MCAUSE] <= `exp_break;
             csr_to_write[`MEPC] <= pc;
-            // TODO mtval mstatus
+            csr_to_write[`MSTATUS] <= mstatus_update;
+            curr_mode_to_write <= `M_MODE;
         end
-        else if(inst[31:7] == `ECALL_PREFIX) begin
+        else if(is_ecall) begin
             ebranch <= 1;
             ebranch_addr <= csr[`MTVEC];
             csr_to_write[`MCAUSE] <= `exp_ecall_u;
             csr_to_write[`MEPC] <= pc;
-            // TODO mtval mstatus
+            csr_to_write[`MSTATUS] <= mstatus_update;
+            curr_mode_to_write <= `M_MODE;
         end
-        else if(inst[31:7] == `MRET_PREFIX) begin
+        else if(is_mret) begin
             ebranch <= 1;
             ebranch_addr <= csr[`MEPC];
-            // TODO  mstatus
+            curr_mode_to_write <= csr[`MSTATUS][12:11];
+        end
+        else begin
+            ebranch <= 1;
+            ebranch_addr <= csr[`MTVEC];
+            csr_to_write[`MCAUSE] <= `exp_inst_illegal;
+            csr_to_write[`MTVAL] <= inst;
+            csr_to_write[`MEPC] <= pc;
+            csr_to_write[`MSTATUS] <= mstatus_update;
+            curr_mode_to_write <= `M_MODE;
         end
     end
     else begin
         // EXP_ERR
         // 这些都是fatal
-        ebranch <= 0;
+        ebranch <= 1;
+        ebranch_addr <= csr[`MTVEC];
+        csr_to_write[`MCAUSE] <= exp_code;
+        csr_to_write[`MSTATUS] <= mstatus_update;
+        curr_mode_to_write <= `M_MODE;
+        case(exp_code)
+            `exp_inst_addr_mis:begin
+                csr_to_write[`MTVAL] <= pc;
+            end
+            `exp_inst_acc_fault:begin
+                csr_to_write[`MTVAL] <= pc;
+            end
+            `exp_inst_illegal:begin
+                csr_to_write[`MTVAL] <= inst;
+            end
+            `exp_load_addr_mis:begin
+                csr_to_write[`MTVAL] <= mem_addr;
+            end
+            `exp_load_acc_fault:begin
+                csr_to_write[`MTVAL] <= mem_addr;
+            end
+            `exp_store_addr_mis:begin
+                csr_to_write[`MTVAL] <= mem_addr;
+            end
+            `exp_store_acc_fault:begin
+                csr_to_write[`MTVAL] <= mem_addr;
+            end
+        endcase
+        csr_to_write[`MEPC] <= pc;
     end
 end
 
@@ -116,6 +169,7 @@ always @(posedge clk or posedge rst) begin
         csr[`MCAUSE] <= `ZeroWord;
         csr[`MEPC] <= `ZeroWord;
         csr[`MTVAL] <= `ZeroWord;
+        // U-mode就是00 dirty
         csr[`MSTATUS] <= `ZeroWord;
         csr[`MSCRATCH] <= `ZeroWord;
     end

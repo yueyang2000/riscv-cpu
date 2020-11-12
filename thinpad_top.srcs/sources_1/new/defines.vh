@@ -146,3 +146,8 @@
 `define EXP_CSRRC 3'b011
 `define EXP_CSRRS 3'b010
 `define EXP_CSRRW 3'b001
+
+// mode
+`define U_MODE 2'b00
+`define S_MODE 2'b01
+`define M_MODE 2'b11
