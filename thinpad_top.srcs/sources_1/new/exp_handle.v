@@ -170,7 +170,7 @@ always @(posedge clk or posedge rst) begin
         csr[`MEPC] <= `ZeroWord;
         csr[`MTVAL] <= `ZeroWord;
         // U-mode就是00 dirty
-        csr[`MSTATUS] <= `ZeroWord;
+        csr[`MSTATUS] <= {19'b0 , 2'b11, 11'b0};
         csr[`MSCRATCH] <= `ZeroWord;
     end
     else if(csr_we) begin
