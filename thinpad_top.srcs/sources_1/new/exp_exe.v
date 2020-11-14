@@ -23,9 +23,10 @@ always @(*) begin
     if(op == `OP_SYS) begin
         if(csr_op || other_op) 
             exception <= `EXP_OP;
-        else
+        else begin
             exception <= `EXP_ERR;
-            exp_code <= `exp_inst_illegal;       
+            exp_code <= `exp_inst_illegal;      
+        end 
     end
     else begin
         // 以此类推，确定exp_code和exception的值
