@@ -32,7 +32,8 @@ module mem_controller(
     input wire[`DataAddrBus] mem_addr,
     input wire[`DataBus] data_in,
     output reg[`DataBus] data_out,
-    output wire done
+    output wire done,
+    input wire sv32_en
 ); 
 // ===== 串口 ===== 
 reg oe_uart_n, we_uart_n;
@@ -102,7 +103,7 @@ sram_io ext_ram_io(
 wire [1:0] mem_use;
 wire [19:0] ram_addr;
 addr_decode _addr_decode(
-    .mem_addr(mem_addr),
+    .mem_addr(phy_addr),
     .mem_use(mem_use),
     .ram_addr(ram_addr)
 );
@@ -116,6 +117,14 @@ data_loader _data_loader(
     .data_ext_out(data_ext_out),
     .uart_rd(data_uart_out),
     .data_to_load(data_to_load)
+);
+
+// 用户态地址映射
+wire[`DataAddrBus] phy_addr;
+mmu _mmu(
+    .sv32_en(sv32_en),
+    .addr_i(mem_addr),
+    .addr_o(phy_addr)
 );
 
 reg[2:0] state;

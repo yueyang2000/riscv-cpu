@@ -133,13 +133,15 @@ mem_controller _mem_controller(
     .uart_dataready(uart_dataready),
     .uart_tbre(uart_tbre),
     .uart_tsre(uart_tsre),
+
     .oen(mem_oe_n),
     .wen(mem_we_n),
     .ram_be_n(mem_ram_be_n),
     .mem_addr(mem_data_addr),
     .data_in(mem_data_in),
     .data_out(mem_data_out),
-    .done(mem_done)
+    .done(mem_done),
+    .sv32_en(sv32_en)
 );
 
 
@@ -204,7 +206,8 @@ wire[`ExpBus] exp_code_if;
 exp_if _exp_if(
     .if_addr(new_pc),
     .exception(exception_if),
-    .exp_code(exp_code_if)
+    .exp_code(exp_code_if),
+    .sv32_en(sv32_en)
 );
 
 wire[1:0] exception_exe;
@@ -217,7 +220,8 @@ exp_exe _exp_exe(
     .ram_be_n(ram_be_n),
     .mem_addr(mem_addr),
     .exception(exception_exe),
-    .exp_code(exp_code_exe)
+    .exp_code(exp_code_exe),
+    .sv32_en(sv32_en)
 );
 
 reg[1:0] exception_handle;
@@ -228,6 +232,7 @@ wire exp_wb_reg;
 wire[`RegAddrBus] exp_wb_reg_addr;
 wire[`DataBus] exp_wb_reg_data;
 reg csr_we;
+wire sv32_en;
 exp_handle _exp_handle(
     .clk(clk),
     .rst(rst),
@@ -246,7 +251,9 @@ exp_handle _exp_handle(
 
     .wb_reg(exp_wb_reg),
     .wb_reg_addr(exp_wb_reg_addr),
-    .wb_reg_data(exp_wb_reg_data)
+    .wb_reg_data(exp_wb_reg_data),
+
+    .sv32_en(sv32_en)
 );
 
 

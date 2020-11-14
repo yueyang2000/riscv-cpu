@@ -17,10 +17,12 @@ module exp_handle(
 
     output reg wb_reg,
     output wire[`RegAddrBus] wb_reg_addr,
-    output reg[`DataBus] wb_reg_data
+    output reg[`DataBus] wb_reg_data,
+
+    output wire sv32_en
 );
 
-
+assign sv32_en = csr[`SATP][31] && curr_mode == `U_MODE;
 assign reg_addr_o = inst[19:15];
 wire [2:0] funct3 = inst[14:12];
 assign wb_reg_addr = inst[11:7];
@@ -30,7 +32,7 @@ reg[1:0] curr_mode;
 reg[1:0] curr_mode_to_write;
 wire[`CsrAddrBus] csr_addr = inst[31:20];
 wire[2:0] csr_addr_map = is_mtvec ? `MTVEC : is_mcause ? `MCAUSE : is_mepc ? `MEPC :
-                        is_mtval ? `MTVAL : is_mstatus ? `MSTATUS : is_mscratch ? `MSCRATCH : `SATP;
+                        is_mtval ? `MTVAL : is_mstatus ? `MSTATUS : is_mscratch ? `MSCRATCH : is_satp? `SATP: `NO_CSR;
 wire is_ebreak = inst[31:7] == `EBREAK_PREFIX;
 wire is_ecall = inst[31:7] == `ECALL_PREFIX;
 wire is_mret = inst[31:7] == `MRET_PREFIX;
@@ -40,33 +42,18 @@ wire is_mepc = csr_addr == `CSR_MEPC;
 wire is_mtval = csr_addr == `CSR_MTVAL;
 wire is_mstatus = csr_addr == `CSR_MSTATUS;
 wire is_mscratch = csr_addr == `CSR_MSCRATCH;
-
+wire is_satp = csr_addr == `CSR_SATP;
 wire[`RegBus] mstatus_update = {csr_to_write[`MSTATUS][31:13], curr_mode, csr_to_write[`MSTATUS][10:0]};
-// reg[`DataBus] mtvec;
-// reg[`DataBus] mcause;
-// reg[`DataBus] mepc;
-// reg[`DataBus] mtval; 
-// reg[`DataBus] mstatus;
-// reg[`DataBus] mscratch;
 
 // 异常处理后csr寄存器的新值
 reg[`RegBus] csr_to_write[0:7];
-// reg[`DataBus] mtvec_to_write;
-// reg[`DataBus] mcause_to_write;
-// reg[`DataBus] mepc_to_write;
-// reg[`DataBus] mtval_to_write; 
-// reg[`DataBus] mstatus_to_write;
-// reg[`DataBus] mscratch_to_write;
 
+// sfence.vma
+wire is_sfence = (inst[31:25] == 7'b0001001) && (inst[14:7] == 8'b0); 
 
 always @(*) begin
     // 默认不做任何更新
-    // mtvec_to_write <= mtvec;
-    // mcause_to_write <= mcause;
-    // mepc_to_write <= mepc;
-    // mtval_to_write <= mtval;
-    // mstatus_to_write <= mstatus;
-    // mscratch_to_write <= mscratch;
+    csr_to_write[`SATP] <= csr[`SATP];
     csr_to_write[`MTVEC] <= csr[`MTVEC];
     csr_to_write[`MCAUSE] <= csr[`MCAUSE];
     csr_to_write[`MEPC] <= csr[`MEPC];
@@ -96,6 +83,10 @@ always @(*) begin
             csr_to_write[csr_addr_map] <= reg_data_i;
             wb_reg <= 1;
             wb_reg_data <= csr[csr_addr_map];
+        end
+        else if(is_sfence) begin
+            // do nothing
+            ebranch <= 0;
         end
         else if(is_ebreak) begin
             ebranch <= 1;
@@ -165,21 +156,18 @@ end
 
 always @(posedge clk or posedge rst) begin
     if(rst) begin
+        csr[`SATP] <= `ZeroWord;
         csr[`MTVEC] <= `ZeroWord;
         csr[`MCAUSE] <= `ZeroWord;
         csr[`MEPC] <= `ZeroWord;
         csr[`MTVAL] <= `ZeroWord;
-        // U-mode就是00 dirty
+        // M-mode启动
+        curr_mode <= `M_MODE;
         csr[`MSTATUS] <= {19'b0 , 2'b11, 11'b0};
         csr[`MSCRATCH] <= `ZeroWord;
     end
     else if(csr_we) begin
-        // mtvec <= mtvec_to_write;
-        // mcause <= mcause_to_write;
-        // mepc <= mepc_to_write;
-        // mtval <= mtval_to_write;
-        // mstatus <= mstatus_to_write;
-        // mscratch <= mscratch_to_write;
+        csr[`SATP] <= csr_to_write[`SATP];
         csr[`MTVEC] <= csr_to_write[`MTVEC];
         csr[`MCAUSE] <= csr_to_write[`MCAUSE];
         csr[`MEPC] <= csr_to_write[`MEPC];

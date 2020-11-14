@@ -3,6 +3,7 @@ verilog xil_defaultlib  --include "../../../../thinpad_top.srcs/sources_1/new" -
 "../../../../thinpad_top.srcs/sources_1/ip/pll_example/pll_example_clk_wiz.v" \
 "../../../../thinpad_top.srcs/sources_1/ip/pll_example/pll_example.v" \
 "../../../../thinpad_top.srcs/sim_1/new/28F640P30.v" \
+"../../../../thinpad_top.srcs/sources_1/new/addr_check.v" \
 "../../../../thinpad_top.srcs/sources_1/new/addr_decode.v" \
 "../../../../thinpad_top.srcs/sim_1/new/clock.v" \
 "../../../../thinpad_top.srcs/sim_1/new/cpld_model.v" \
@@ -13,6 +14,7 @@ verilog xil_defaultlib  --include "../../../../thinpad_top.srcs/sources_1/new" -
 "../../../../thinpad_top.srcs/sources_1/new/exp_if.v" \
 "../../../../thinpad_top.srcs/sim_1/new/flag_sync_cpld.v" \
 "../../../../thinpad_top.srcs/sources_1/new/mem_controller.v" \
+"../../../../thinpad_top.srcs/sources_1/new/mmu.v" \
 "../../../../thinpad_top.srcs/sources_1/new/regfile.v" \
 "../../../../thinpad_top.srcs/sources_1/new/sram_io.v" \
 "../../../../thinpad_top.srcs/sim_1/new/sram_model.v" \

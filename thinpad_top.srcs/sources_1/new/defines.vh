@@ -132,7 +132,7 @@
 `define CSR_MEPC 12'h341
 `define CSR_MCAUSE 12'h342
 `define CSR_MTVAL 12'h343
-
+`define CSR_SATP 12'h180
 // csr reg map
 `define MTVEC 3'b000
 `define MCAUSE 3'b001
@@ -141,7 +141,7 @@
 `define MSTATUS 3'b100
 `define MSCRATCH 3'b101
 `define SATP 3'b110
-
+`define NO_CSR 3'b111 
 // funct3 of exception
 `define EXP_CSRRC 3'b011
 `define EXP_CSRRS 3'b010
