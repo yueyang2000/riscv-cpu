@@ -163,7 +163,7 @@ always @(posedge clk or posedge rst) begin
         csr[`MTVAL] <= `ZeroWord;
         // M-mode启动
         curr_mode <= `M_MODE;
-        csr[`MSTATUS] <= {19'b0 , 2'b11, 11'b0};
+        csr[`MSTATUS] <= `ZeroWord;
         csr[`MSCRATCH] <= `ZeroWord;
     end
     else if(csr_we) begin
@@ -174,6 +174,7 @@ always @(posedge clk or posedge rst) begin
         csr[`MTVAL] <= csr_to_write[`MTVAL];
         csr[`MSTATUS] <= csr_to_write[`MSTATUS];
         csr[`MSCRATCH] <= csr_to_write[`MSCRATCH];
+        curr_mode <= curr_mode_to_write;
     end
 end
 endmodule
