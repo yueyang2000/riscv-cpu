@@ -16,7 +16,10 @@ wire err;
 addr_check _addr_check(
     .sv32_en(sv32_en),
     .mem_addr(mem_addr),
-    .err(err)
+    .err(err),
+    .mem_rd(mem_rd),
+    .mem_wr(mem_wr),
+    .mem_if(1'b0)
 );
 
 wire[6:0] op = inst[6:0];

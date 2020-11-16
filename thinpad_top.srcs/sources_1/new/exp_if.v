@@ -12,7 +12,10 @@ wire err;
 addr_check _addr_check(
     .sv32_en(sv32_en),
     .mem_addr(if_addr),
-    .err(err)
+    .err(err),
+    .mem_rd(1'b0),
+    .mem_wr(1'b0),
+    .mem_if(1'b1)
 );
 // wire inst_acc_fault = if_addr > 32'h807fffff ? 1'b1 : if_addr < 32'h80000000 ? 1'b1 : 1'b0;
 

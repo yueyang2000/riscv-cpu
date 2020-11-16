@@ -149,6 +149,15 @@ always @(*) begin
             `exp_store_acc_fault:begin
                 csr_to_write[`MTVAL] <= mem_addr;
             end
+            `exp_inst_page_fault:begin
+                csr_to_write[`MTVAL] <= pc;
+            end
+            `exp_load_page_fault:begin
+                csr_to_write[`MTVAL] <= mem_addr;
+            end
+            `exp_store_page_fault:begin
+                csr_to_write[`MTVAL] <= mem_addr;
+            end
         endcase
         csr_to_write[`MEPC] <= pc;
     end
