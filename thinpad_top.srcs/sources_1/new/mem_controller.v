@@ -33,7 +33,9 @@ module mem_controller(
     input wire[`DataBus] data_in,
     output reg[`DataBus] data_out,
     output wire done,
-    input wire sv32_en
+
+    input wire sv32_en,
+    input wire[21:0] satp_ppn
 ); 
 // ===== 串口 ===== 
 reg oe_uart_n, we_uart_n;
@@ -119,18 +121,29 @@ data_loader _data_loader(
     .data_to_load(data_to_load)
 );
 
-// 用户态地址映射
-wire[`DataAddrBus] phy_addr;
-mmu _mmu(
-    .sv32_en(sv32_en),
-    .addr_i(mem_addr),
-    .addr_o(phy_addr)
-);
+// // 用户态地址映射（硬编码）
+// wire[`DataAddrBus] phy_addr;
+// mmu _mmu(
+//     .sv32_en(sv32_en),
+//     .addr_i(mem_addr),
+//     .addr_o(phy_addr)
+// );
+
+// 用户态地址映射（查页表）
+reg[`DataAddrBus] phy_addr;
+
+wire[`DataAddrBus] page1_addr = {satp_ppn[19:0], mem_addr[31:22], 2'b0};
+wire[`DataBus] page_entry = data_base_out;
+wire is_uart = 32'h10000000 <= mem_addr && 32'h10000008 >= mem_addr;
 
 reg[2:0] state;
 localparam STATE_IDLE = 3'b000;
 localparam STATE_READ = 3'b001;
 localparam STATE_WRITE = 3'b010;
+localparam STATE_START = 3'b011;
+localparam STATE_PAGE_1 = 3'b100;
+localparam STATE_PAGE_2 = 3'b101;
+localparam STATE_PAGE_3 = 3'b110;
 localparam STATE_DONE = 3'b111;
 assign done = state == STATE_DONE;
 
@@ -147,10 +160,50 @@ always @(posedge clk or posedge rst) begin
         base_ram_be_reg <= 4'b0;
         ext_ram_be_reg <= 4'b0;
         data_uart_in <= 32'b0;
+        phy_addr <= 32'b0;
     end
     else begin
         case(state)
             STATE_IDLE: begin
+                if(~oen | ~wen) begin
+                    if(sv32_en && ~is_uart) begin
+                        // 需要映射，先查一级页表
+                        state <= STATE_PAGE_1;
+                        base_address <= page1_addr;
+                        oe_base_n <= 1'b0;
+                    end
+                    else begin
+                        phy_addr <= mem_addr;
+                        state <= STATE_START;
+                    end
+                end
+            end
+            STATE_PAGE_1: begin
+                if(base_done) begin
+                    oe_base_n <= 1'b1;
+                    if(page_entry[3:1] != 3'b0) begin
+                        phy_addr <= {page_entry[29:10], mem_addr[11:0]};
+                        state <= STATE_START;
+                    end
+                    else begin
+                        // is not leaf, keep reading
+                        state <= STATE_PAGE_2;
+                        base_address <= {page_entry[29:10], mem_addr[21:12], 2'b0};
+                    end
+                end
+            end
+            STATE_PAGE_2: begin
+                oe_base_n <= 1'b0;
+                state <= STATE_PAGE_3;
+            end
+            STATE_PAGE_3: begin
+                if(base_done) begin
+                    oe_base_n <= 1'b1;
+                    phy_addr <= {page_entry[29:10], mem_addr[11:0]};
+                    state <= STATE_START;
+                end
+            end
+            STATE_START: begin
                 if (~oen) begin
                     case(mem_use)
                         `USE_BASE: begin

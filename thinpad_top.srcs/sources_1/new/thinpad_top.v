@@ -141,7 +141,9 @@ mem_controller _mem_controller(
     .data_in(mem_data_in),
     .data_out(mem_data_out),
     .done(mem_done),
-    .sv32_en(sv32_en)
+
+    .sv32_en(sv32_en),
+    .satp_ppn(satp_ppn)
 );
 
 
@@ -233,6 +235,7 @@ wire[`RegAddrBus] exp_wb_reg_addr;
 wire[`DataBus] exp_wb_reg_data;
 reg csr_we;
 wire sv32_en;
+wire[21:0] satp_ppn;
 exp_handle _exp_handle(
     .clk(clk),
     .rst(rst),
@@ -253,7 +256,8 @@ exp_handle _exp_handle(
     .wb_reg_addr(exp_wb_reg_addr),
     .wb_reg_data(exp_wb_reg_data),
 
-    .sv32_en(sv32_en)
+    .sv32_en(sv32_en),
+    .satp_ppn(satp_ppn)
 );
 
 

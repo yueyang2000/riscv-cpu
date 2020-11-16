@@ -19,9 +19,10 @@ module exp_handle(
     output wire[`RegAddrBus] wb_reg_addr,
     output reg[`DataBus] wb_reg_data,
 
-    output wire sv32_en
+    output wire sv32_en,
+    output wire[21:0] satp_ppn
 );
-
+assign satp_ppn = csr[`SATP][21:0];
 assign sv32_en = csr[`SATP][31] && curr_mode == `U_MODE;
 assign reg_addr_o = inst[19:15];
 wire [2:0] funct3 = inst[14:12];
