@@ -169,7 +169,8 @@ always @(posedge clk or posedge rst) begin
                     if(sv32_en && ~is_uart) begin
                         // 需要映射，先查一级页表
                         state <= STATE_PAGE_1;
-                        base_address <= page1_addr;
+                        // 注意这里是sram地址
+                        base_address <= page1_addr[21:2];
                         oe_base_n <= 1'b0;
                     end
                     else begin
@@ -188,7 +189,8 @@ always @(posedge clk or posedge rst) begin
                     else begin
                         // is not leaf, keep reading
                         state <= STATE_PAGE_2;
-                        base_address <= {page_entry[29:10], mem_addr[21:12], 2'b0};
+                        // 注意这里是sram地址
+                        base_address <= {page_entry[29:10], mem_addr[21:12]};
                     end
                 end
             end
