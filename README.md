@@ -12,7 +12,11 @@ Thinpad RISC-V CPU
 
 ## Developers
 
+[乐阳](https://github.com/yueyang2000)
 
+[黄翘楚](https://github.com/huangqc18)
+
+[张鹤潇](https://github.com/zhanghx0905)
 
 #### 附
 
