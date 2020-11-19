@@ -81,7 +81,7 @@
 `define STATE_WB 4'b0100 
 `define STATE_EXP 4'b0101 
 
-`define USE_NOTHING 2'b00
+`define USE_VGA 2'b00
 `define USE_BASE 2'b01 
 `define USE_EXT 2'b10 
 `define USE_UART 2'b11 

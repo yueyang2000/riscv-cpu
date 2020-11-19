@@ -106,7 +106,7 @@ end
 wire clk = clk_20M;
 wire rst = reset_of_clk20M;
 
-
+// ===== 存储相关 =====
 reg mem_oe_n, mem_we_n;
 reg[`DataBus] mem_data_in;
 wire[`DataBus] mem_data_out;
@@ -143,7 +143,11 @@ mem_controller _mem_controller(
     .done(mem_done),
 
     .sv32_en(sv32_en),
-    .satp_ppn(satp_ppn)
+    .satp_ppn(satp_ppn),
+
+    .gram_we_n(gram_we_n),
+    .gram_wr_data(gram_wr_data),
+    .gram_wr_addr(gram_wr_addr)
 );
 
 
@@ -260,6 +264,44 @@ exp_handle _exp_handle(
     .satp_ppn(satp_ppn)
 );
 
+wire gram_we_n;
+wire[18:0] gram_rd_addr;
+wire[7:0] gram_rd_data;
+wire[18:0] gram_wr_addr;
+wire[7:0] gram_wr_data;
+gram _gram (
+    // write ports
+    .clka(clk),    // input wire clka
+    .ena(1'b1),      // input wire ena
+    .wea(~gram_we_n),      // input wire [0 : 0] wea
+    .addra(gram_wr_addr),  // input wire [18 : 0] addra
+    .dina(gram_wr_data),    // input wire [7 : 0] dina
+
+    // read ports
+    .clkb(clk),    // input wire clkb
+    .enb(1'b1),      // input wire enb
+    .addrb(gram_rd_addr),  // input wire [18 : 0] addrb
+    .doutb(gram_rd_data)  // output wire [7 : 0] doutb
+);
+
+
+wire[11:0] hdata;
+wire[11:0] vdata;
+assign video_red = gram_rd_data[2:0];
+assign video_green = gram_rd_data[5:3];
+assign video_blue = gram_rd_data[7:6];
+assign video_clk = clk;
+vga #(.WIDTH(12), .HSIZE(800), .HFP(856), .HSP(976), .HMAX(1040), 
+    .VSIZE(600), .VFP(637), .VSP(643), .VMAX(666), .HSPP(1), .VSPP(1)) vga800x600at75 (
+    .rst(rst),
+    .clk(clk), 
+    .hdata(hdata),
+    .vdata(vdata),
+    .hsync(video_hsync),
+    .vsync(video_vsync),
+    .data_enable(video_de),
+    .addr(gram_rd_addr)
+);
 
 // ===== 状态机 =====
 

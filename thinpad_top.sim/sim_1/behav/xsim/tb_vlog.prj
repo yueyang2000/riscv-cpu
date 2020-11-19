@@ -1,5 +1,6 @@
 # compile verilog/system verilog design source files
 verilog xil_defaultlib  --include "../../../../thinpad_top.srcs/sources_1/new" --include "../../../../thinpad_top.srcs/sim_1/new/include" --include "../../../../thinpad_top.srcs/sources_1/ip/pll_example" \
+"../../../../thinpad_top.srcs/sources_1/ip/gram/sim/gram.v" \
 "../../../../thinpad_top.srcs/sources_1/ip/pll_example/pll_example_clk_wiz.v" \
 "../../../../thinpad_top.srcs/sources_1/ip/pll_example/pll_example.v" \
 "../../../../thinpad_top.srcs/sim_1/new/28F640P30.v" \
@@ -19,6 +20,7 @@ verilog xil_defaultlib  --include "../../../../thinpad_top.srcs/sources_1/new" -
 "../../../../thinpad_top.srcs/sim_1/new/sram_model.v" \
 "../../../../thinpad_top.srcs/sources_1/new/thinpad_top.v" \
 "../../../../thinpad_top.srcs/sources_1/new/uart_io.v" \
+"../../../../thinpad_top.srcs/sources_1/new/vga.v" \
 
 sv xil_defaultlib  --include "../../../../thinpad_top.srcs/sources_1/new" --include "../../../../thinpad_top.srcs/sim_1/new/include" --include "../../../../thinpad_top.srcs/sources_1/ip/pll_example" \
 "../../../../thinpad_top.srcs/sim_1/new/tb.sv" \

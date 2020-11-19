@@ -17,6 +17,7 @@ wire t2 = mem_addr >= 32'h7FC10000 && mem_addr <= 32'h7FFFFFFF && (mem_wr || mem
 wire t3 = mem_addr >= 32'h80000000 && mem_addr <= 32'h80000FFF && (mem_if || mem_rd);
 wire t4 = mem_addr >= 32'h80100000 && mem_addr <= 32'h80100FFF && (mem_if || mem_rd);
 wire is_uart = 32'h10000000 <= mem_addr && 32'h10000008 >= mem_addr;
-assign err = is_uart? 1'b0 : sv32_en ? ~(t1 | t2 | t3 | t4) : mem_acc_fault;
+wire is_vga = 32'h20000000 <= mem_addr && mem_addr < 32'h20075300;
+assign err = (is_vga | is_uart ) ? 1'b0 : sv32_en ? ~(t1 | t2 | t3 | t4) : mem_acc_fault;
 
 endmodule

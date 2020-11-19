@@ -35,7 +35,12 @@ module mem_controller(
     output wire done,
 
     input wire sv32_en,
-    input wire[21:0] satp_ppn
+    input wire[21:0] satp_ppn,
+
+    // gram控制信号
+    output reg gram_we_n,
+    output reg[7:0] gram_wr_data,
+    output wire[18:0] gram_wr_addr
 ); 
 // ===== 串口 ===== 
 reg oe_uart_n, we_uart_n;
@@ -132,10 +137,13 @@ data_loader _data_loader(
 // 用户态地址映射（查页表）
 reg[`DataAddrBus] phy_addr;
 
+// 低19位用于gram地址映射
+assign gram_wr_addr = mem_addr[18:0];
+
 wire[`DataAddrBus] page1_addr = {satp_ppn[19:0], mem_addr[31:22], 2'b0};
 wire[`DataBus] page_entry = data_base_out;
 wire is_uart = 32'h10000000 <= mem_addr && 32'h10000008 >= mem_addr;
-
+wire is_vga = 32'h20000000 <= mem_addr && mem_addr < 32'h20075300;
 reg[2:0] state;
 localparam STATE_IDLE = 3'b000;
 localparam STATE_READ = 3'b001;
@@ -153,6 +161,7 @@ always @(posedge clk or posedge rst) begin
         {oe_base_n, we_base_n} <= 2'b11;
         {oe_ext_n, we_ext_n} <= 2'b11;
         {oe_uart_n, we_uart_n} <= 2'b11;
+
         base_address <= 20'b0;
         ext_address <= 20'b0;
         data_base_in <= 32'b0;
@@ -160,13 +169,17 @@ always @(posedge clk or posedge rst) begin
         base_ram_be_reg <= 4'b0;
         ext_ram_be_reg <= 4'b0;
         data_uart_in <= 32'b0;
+
         phy_addr <= 32'b0;
+
+        gram_we_n <= 1'b1;
+        gram_wr_data <= 8'b0;
     end
     else begin
         case(state)
             STATE_IDLE: begin
                 if(~oen | ~wen) begin
-                    if(sv32_en && ~is_uart) begin
+                    if(sv32_en && ~is_uart && ~is_vga) begin
                         // 需要映射，先查一级页表
                         state <= STATE_PAGE_1;
                         // 注意这里是sram地址
@@ -233,7 +246,8 @@ always @(posedge clk or posedge rst) begin
                                 state <= STATE_DONE;
                             end                            
                         end
-                        `USE_NOTHING: begin
+                        `USE_VGA: begin
+                            // VGA cannot be read
                             state <= STATE_DONE;
                         end
                     endcase
@@ -275,8 +289,22 @@ always @(posedge clk or posedge rst) begin
                                 state <= STATE_DONE;
                             end
                         end
-                        `USE_NOTHING: begin
-                            state <= STATE_DONE;
+                        `USE_VGA: begin
+                            // write gram
+                            gram_we_n <= 1'b0;
+                            case (ram_be_n)
+                                `BE_BYTE_0:
+                                    gram_wr_data <= data_in[7:0];
+                                `BE_BYTE_1:
+                                    gram_wr_data <= data_in[15:8];
+                                `BE_BYTE_2:
+                                    gram_wr_data <= data_in[23:16];
+                                `BE_BYTE_3:
+                                    gram_wr_data <= data_in[31:24];
+                                default:
+                                    gram_wr_data <= 8'hzz;
+                            endcase
+                            state <= STATE_WRITE;
                         end
                     endcase                    
                 end               
@@ -306,7 +334,8 @@ always @(posedge clk or posedge rst) begin
                         state <= STATE_DONE;
                     end
                 end
-                `USE_NOTHING: begin
+                `USE_VGA: begin
+                    // this case will never be reached
                     state <= STATE_DONE;
                 end
             endcase
@@ -333,7 +362,9 @@ always @(posedge clk or posedge rst) begin
                         state <= STATE_DONE;
                     end
                 end
-                `USE_NOTHING: begin
+                `USE_VGA: begin
+                    // should be finished by now
+                    gram_we_n <= 1'b1;
                     state <= STATE_DONE;
                 end
             endcase
