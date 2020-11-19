@@ -319,7 +319,7 @@ always@(posedge clk or posedge rst) begin
         state <= `STATE_BOOT;
         inst <= 32'b0;
         {mem_we_n, mem_oe_n} <= 2'b11;
-        mem_data_addr <= 32'b0;
+        mem_data_addr <= 32'b0;          
         {csr_we, reg_we} <= 2'b00;
         reg_wdata <= `ZeroWord;
         reg_waddr <= 0;

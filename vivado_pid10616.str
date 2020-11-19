@@ -1405,3 +1405,25 @@ dismissDialog("Generate Bitstream"); // bB (cr)
 // aj (cr): Bitstream Generation Completed: addNotify
 // HMemoryUtils.trashcanNow. Engine heap size: 1,567 MB. GUI used memory: 111 MB. Current time: 11/19/20, 9:06:18 PM CST
 // WARNING: HSwingWorker (Update Runs Swing Worker) is taking 1283 ms. Increasing delay to 3000 ms.
+// HMemoryUtils.trashcanNow. Engine heap size: 1,567 MB. GUI used memory: 109 MB. Current time: 11/19/20, 9:36:18 PM CST
+// HMemoryUtils.trashcanNow. Engine heap size: 1,567 MB. GUI used memory: 110 MB. Current time: 11/19/20, 10:06:18 PM CST
+// HMemoryUtils.trashcanNow. Engine heap size: 1,567 MB. GUI used memory: 109 MB. Current time: 11/19/20, 10:36:18 PM CST
+// Elapsed time: 7665 seconds
+selectButton(RDIResource.BaseDialog_CANCEL, "Cancel"); // a (aj)
+dismissDialog("Bitstream Generation Completed"); // aj (cr)
+selectButton(PAResourceTtoZ.TaskBanner_CLOSE, (String) null); // k (aA, cr)
+closeTask("Simulation", "Behavioral Simulation - Functional - sim_1 - tb", "DesignTask.SIMULATION");
+// A (cr): Confirm Close: addNotify
+selectButton(RDIResource.BaseDialog_OK, "OK"); // a (A)
+// bB (cr):  Close : addNotify
+dismissDialog("Confirm Close"); // A (cr)
+// TclEventType: WAVEFORM_CLOSE_WCFG
+// Tcl Message: close_sim 
+// TclEventType: WAVEFORM_CLOSE_WCFG
+// TclEventType: SIMULATION_CLOSE_SIMULATION
+// WARNING: HEventQueue.dispatchEvent() is taking  2021 ms.
+// Tcl Message: INFO: [Simtcl 6-16] Simulation closed 
+// Tcl Message: close_sim: Time (s): cpu = 00:00:02 ; elapsed = 00:00:17 . Memory (MB): peak = 2187.094 ; gain = 0.000 
+// Elapsed time: 17 seconds
+dismissDialog("Close"); // bB (cr)
+closeView(PAResourceOtoP.PAViews_IP_CATALOG, "IP Catalog"); // W
