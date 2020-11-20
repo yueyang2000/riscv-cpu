@@ -88,6 +88,7 @@ wire[`DataBus] sub_result = reg1_data_i - reg2_data_i;
 wire[`DataBus] and_result = reg1_data_i & reg2_data_i; 
 wire[`DataBus] or_result = reg1_data_i | reg2_data_i;
 wire[`DataBus] xor_result = reg1_data_i ^ reg2_data_i;
+wire[`DataBus] srl_result = reg1_data_i >> reg2_data_i[4:0];
 wire[`DataBus] ori_result = reg1_data_i | immI;
 wire[`DataBus] addi_result = reg1_data_i + immI;
 wire[`DataBus] andi_result = reg1_data_i & immI;
@@ -152,6 +153,14 @@ always @(*) begin
                     end
                     else if (funct7 == `ARITH_XOR_FUNCT7)begin
                         wb_data <= xor_result;
+                    end
+                    else begin
+                        instValid <= 0;
+                    end
+                end
+                `ARITH_SRL: begin
+                    if(funct7 == `ARITH_SRL_FUNCT7)begin
+                        wb_data <= srl_result;
                     end
                     else begin
                         instValid <= 0;
