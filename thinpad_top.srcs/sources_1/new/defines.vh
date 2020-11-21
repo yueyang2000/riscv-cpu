@@ -152,3 +152,5 @@
 `define U_MODE 2'b00
 `define S_MODE 2'b01
 `define M_MODE 2'b11
+
+`define BTN_ADDR 32'h20075300

@@ -40,7 +40,8 @@ module mem_controller(
     // gram控制信号
     output reg gram_we_n,
     output reg[7:0] gram_wr_data,
-    output wire[18:0] gram_wr_addr
+    output wire[18:0] gram_wr_addr,
+    input wire[3:0] touch_btn
 ); 
 // ===== 串口 ===== 
 reg oe_uart_n, we_uart_n;
@@ -143,7 +144,7 @@ assign gram_wr_addr = mem_addr[18:0];
 wire[`DataAddrBus] page1_addr = {satp_ppn[19:0], mem_addr[31:22], 2'b0};
 wire[`DataBus] page_entry = data_base_out;
 wire is_uart = 32'h10000000 <= mem_addr && 32'h10000008 >= mem_addr;
-wire is_vga = 32'h20000000 <= mem_addr && mem_addr < 32'h20075300;
+wire is_vga = 32'h20000000 <= mem_addr && mem_addr <= 32'h20075300;
 reg[2:0] state;
 localparam STATE_IDLE = 3'b000;
 localparam STATE_READ = 3'b001;
@@ -247,8 +248,14 @@ always @(posedge clk or posedge rst) begin
                             end                            
                         end
                         `USE_VGA: begin
-                            // VGA cannot be read
-                            state <= STATE_DONE;
+                            // only BTN can be read
+                            if(mem_addr == `BTN_ADDR) begin
+                                data_out <= {4'b0, touch_btn};
+                                state <= STATE_DONE;
+                            end
+                            else begin
+                                state <= STATE_DONE;
+                            end
                         end
                     endcase
                 end

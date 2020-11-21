@@ -147,7 +147,8 @@ mem_controller _mem_controller(
 
     .gram_we_n(gram_we_n),
     .gram_wr_data(gram_wr_data),
-    .gram_wr_addr(gram_wr_addr)
+    .gram_wr_addr(gram_wr_addr),
+    .touch_btn(touch_btn)
 );
 
 

@@ -1,10 +1,10 @@
 // Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
 // --------------------------------------------------------------------------------
 // Tool Version: Vivado v.2019.2 (win64) Build 2708876 Wed Nov  6 21:40:23 MST 2019
-// Date        : Fri Nov 20 16:03:30 2020
-// Host        : DESKTOP-SRG0VKT running 64-bit major release  (build 9200)
+// Date        : Sat Nov 21 14:06:26 2020
+// Host        : LAPTOP-H1EHK1GA running 64-bit major release  (build 9200)
 // Command     : write_verilog -force -mode funcsim
-//               E:/VivadoProject/ex6/cod20-grp30/thinpad_top.srcs/sources_1/ip/gram/gram_sim_netlist.v
+//               d:/Design/cod20-grp30/thinpad_top.srcs/sources_1/ip/gram/gram_sim_netlist.v
 // Design      : gram
 // Purpose     : This verilog netlist is a functional simulation representation of the design and should not be modified
 //               or synthesized. This netlist cannot be used for SDF annotated simulation.
