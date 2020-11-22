@@ -1,6 +1,6 @@
 # s9 0x20000000 s11 0x80100000 x4 返回地址
 BACKGROUND:
-.long 0b00000000000000111111111111111111  
+.long 0b00000000000000111111111110000000  
 .long 0b00000000000000111111111110000000  
 .long 0b11111110000000111111111110000000    
 .long 0b11111110000000111111111110000111 
@@ -79,6 +79,7 @@ COLOR_CONTINUE:
     addi s10, s10, 0x4
     bne a0, a4, LINE
     jal renderPerson # renderBackground 结束
+    jal renderEnd
     j OPERATION
 mul25: # a0 = a0*25
     slli t0, a0, 4
@@ -225,9 +226,43 @@ OP_D:
     j OPERATION_DONE
 OPERATION_DONE: # 操作结束 重新renderPerson
     jal renderPerson
+JUDGE_ROW:
+    bne a5, zero, JUDGE_FAIL
+JUDGE_COL:
+    li t0, 31
+    beq a6, t0, SUCCESS
+JUDGE_FAIL:    
     li t0, 0x0
     li t1, 0x0000ffff
 WATING_LOOP:
     addi t0, t0, 1
     bne t0, t1, WATING_LOOP
     j OPERATION
+SUCCESS:
+    li s0, 30          # 系统调用号
+    li a0, 0x53        
+    ecall
+    li a0, 0x55        
+    ecall
+    li a0, 0x43        
+    ecall
+    li a0, 0x43        
+    ecall
+    li a0, 0x45        
+    ecall
+    li a0, 0x53        
+    ecall
+    li a0, 0x53        
+    ecall
+    li a0, 0x21        
+    ecall
+    mv ra, x4
+    ret
+renderEnd: 
+    li a0, 0
+    li a1, 31
+    li a2, 0b00111000
+    mv s10, ra
+    jal renderSquare
+    mv ra, s10
+    ret
