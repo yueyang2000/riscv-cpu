@@ -1,7 +1,7 @@
 // Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
 // --------------------------------------------------------------------------------
 // Tool Version: Vivado v.2019.2 (win64) Build 2708876 Wed Nov  6 21:40:23 MST 2019
-// Date        : Mon Nov 16 20:53:28 2020
+// Date        : Tue Nov 24 18:34:54 2020
 // Host        : LAPTOP-H1EHK1GA running 64-bit major release  (build 9200)
 // Command     : write_verilog -force -mode funcsim
 //               D:/Design/cod20-grp30/thinpad_top.srcs/sources_1/ip/pll_example/pll_example_sim_netlist.v
@@ -111,7 +111,7 @@ module pll_example_pll_example_clk_wiz
     .CLKOUT0_DUTY_CYCLE(0.500000),
     .CLKOUT0_PHASE(0.000000),
     .CLKOUT0_USE_FINE_PS("FALSE"),
-    .CLKOUT1_DIVIDE(50),
+    .CLKOUT1_DIVIDE(25),
     .CLKOUT1_DUTY_CYCLE(0.500000),
     .CLKOUT1_PHASE(0.000000),
     .CLKOUT1_USE_FINE_PS("FALSE"),

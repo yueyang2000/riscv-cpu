@@ -63,6 +63,9 @@ module sram_io(
                     ram_ce_n_flag = 1'b0;
                 end
                 STATE_READ_1: begin
+                    state <= STATE_READ_2;
+                end
+                STATE_READ_2: begin
                     state <= STATE_DONE;
                     ram_oe_n_flag = 1'b1;
                     ram_ce_n_flag = 1'b1;
@@ -74,6 +77,9 @@ module sram_io(
                     ram_ce_n_flag = 1'b0;
                 end
                 STATE_WRITE_1: begin
+                    state <= STATE_WRITE_2;
+                end
+                STATE_WRITE_2: begin
                     state <= STATE_DONE;
                     ram_we_n_flag = 1'b1;
                     ram_ce_n_flag = 1'b1;

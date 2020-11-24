@@ -82,29 +82,31 @@ module thinpad_top(
 
 
 // PLL分频示例
-wire locked, clk_10M, clk_20M;
+wire locked, clk_10M, clk_40M;
 pll_example clock_gen 
  (
   // Clock in ports
   .clk_in1(clk_50M),  // 外部时钟输入
   // Clock out ports
   .clk_out1(clk_10M), // 时钟输出1，频率在IP配置界面中设置
-  .clk_out2(clk_20M), // 时钟输出2，频率在IP配置界面中设置
+  .clk_out2(clk_40M), // 时钟输出2，频率在IP配置界面中设置
   // Status and control signals
   .reset(reset_btn), // PLL复位输入
   .locked(locked)    // PLL锁定指示输出，"1"表示时钟稳定，
                      // 后级电路复位信号应当由它生成（见下）
  );
 
-reg reset_of_clk20M;
+reg reset_of_clk40M;
 // 异步复位，同步释放，将locked信号转为后级电路的复位reset_of_clk10M
-always@(posedge clk_20M or negedge locked) begin
-    if(~locked) reset_of_clk20M <= 1'b1;
-    else        reset_of_clk20M <= 1'b0;
+always@(posedge clk_40M or negedge locked) begin
+    if(~locked) reset_of_clk40M <= 1'b1;
+    else        reset_of_clk40M <= 1'b0;
 end
 
-wire clk = clk_20M;
-wire rst = reset_of_clk20M;
+// wire clk = clk_40M;
+// wire rst = reset_of_clk40M;
+wire clk = clk_50M;
+wire rst = reset_btn;
 
 // ===== 存储相关 =====
 reg mem_oe_n, mem_we_n;
