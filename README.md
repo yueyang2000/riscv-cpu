@@ -14,7 +14,7 @@ Thinpad RISC-V CPU
 
 [乐阳](https://github.com/yueyang2000)
 
-[黄翘楚](https://github.com/huangqc18)
+[黄翘楚](https://github.com/huangqc2000)
 
 [张鹤潇](https://github.com/zhanghx0905)
 
