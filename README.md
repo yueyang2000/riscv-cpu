@@ -10,6 +10,8 @@ Thinpad RISC-V CPU
 - MMU
 - ....
 
+<img src="img/模块图.png" alt="modules" style="zoom: 67%;" />
+
 ## Developers
 
 [乐阳](https://github.com/yueyang2000)
