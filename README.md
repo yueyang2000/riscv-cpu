@@ -16,7 +16,7 @@ Thinpad RISC-V CPU
 
 汇编语言编写的迷宫游戏，运行于硬件语言实现的CPU上
 
-![game_demo](img/game_demo.gif)
+<img src="img/game_demo.gif">
 
 ## Developers
 
