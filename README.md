@@ -12,6 +12,12 @@ Thinpad RISC-V CPU
 
 <img src="img/模块图.png" alt="modules" style="zoom: 67%;" />
 
+## Game Demo
+
+汇编语言编写的迷宫游戏，运行于硬件语言实现的CPU上
+
+![game_demo](C:\Users\86186\Downloads\riscv-cpu\img\game_demo.gif)
+
 ## Developers
 
 [乐阳](https://github.com/yueyang2000)
